@@ -1,0 +1,45 @@
+# Compiled output
+/dist
+/build
+
+# Dependencies
+/node_modules
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Uploads & Media
+/uploads
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# NestJS / TypeScript
+*.tsbuildinfo
+
+# Coverage / Testing
+/coverage
+
+# IDEs and Editors
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# AI / Coding Agent directories
+.agents
+.claude
+.cursor
+.devin
