@@ -1,0 +1,21 @@
+model SmsHoliday {
+  id                  Int                  @id @default(autoincrement())
+  organizationId      Int
+  organization        SmsOrganization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branchId            Int?
+  branch              SmsBranch?           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name                String
+  description         String?
+  holidayDate         DateTime
+  isRecurringAnnually Boolean              @default(false)
+  status              String               @default("active")
+  createdBy           Int?
+  creator             User?                @relation("HolidayCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  overrides           SmsHolidayOverride[]
+
+  @@map("sms_holidays")
+  @@index([organizationId, holidayDate])
+}

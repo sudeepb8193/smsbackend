@@ -21,7 +21,11 @@ model User {
   updatedAt        DateTime     @updatedAt
   deletedAt        DateTime?
 
-  userBranches     UserBranch[]
+  userBranches         UserBranch[]
+  userRoles            SmsUserRole[]      @relation("UserRolesTarget")
+  assignedUserRoles    SmsUserRole[]      @relation("UserRolesAssigner")
+  createdOrganizations SmsOrganization[]  @relation("OrganizationCreatedBy")
+  createdHolidays      SmsHoliday[]       @relation("HolidayCreatedBy")
 
   @@map("sms_users")
   @@unique([organizationId, email])
@@ -43,6 +47,8 @@ model SmsBranch {
   deletedAt      DateTime?
 
   userBranches   UserBranch[]
+  businessHours  SmsBusinessHours[]
+  holidays       SmsHoliday[]
 
   @@map("sms_branches")
   @@index([organizationId])
@@ -56,4 +62,69 @@ model UserBranch {
 
   @@id([userId, branchId])
   @@map("sms_user_branches")
+}
+
+model SmsRole {
+  id             Int                 @id @default(autoincrement())
+  uuid           String              @unique @default(uuid())
+  organizationId Int                 @default(1)
+  name           String
+  code           String
+  description    String?
+  status         String              @default("active")
+  isSystem       Boolean             @default(false)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  deletedAt      DateTime?
+
+  rolePermissions SmsRolePermission[]
+  userRoles       SmsUserRole[]
+
+  @@map("sms_roles")
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model SmsPermission {
+  id              Int                 @id @default(autoincrement())
+  code            String              @unique
+  name            String
+  module          String
+  description     String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  rolePermissions SmsRolePermission[]
+
+  @@map("sms_permissions")
+}
+
+model SmsRolePermission {
+  id           Int           @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         SmsRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   SmsPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@map("sms_role_permissions")
+  @@unique([roleId, permissionId])
+}
+
+model SmsUserRole {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  roleId     Int
+  isPrimary  Boolean   @default(false)
+  assignedBy Int?
+  assignedAt DateTime  @default(now())
+  removedAt  DateTime?
+
+  user     User    @relation("UserRolesTarget", fields: [userId], references: [id], onDelete: Cascade)
+  role     SmsRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assigner User?   @relation("UserRolesAssigner", fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  @@map("sms_user_roles")
+  @@index([userId])
+  @@index([roleId])
+  @@index([userId, isPrimary])
 }

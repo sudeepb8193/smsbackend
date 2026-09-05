@@ -1,0 +1,12 @@
+model SmsHolidayOverride {
+  id          Int        @id @default(autoincrement())
+  holidayId   Int
+  holiday     SmsHoliday @relation(fields: [holidayId], references: [id], onDelete: Cascade)
+  year        Int
+  isCancelled Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("sms_holiday_overrides")
+  @@unique([holidayId, year])
+}

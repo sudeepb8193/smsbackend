@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -17,6 +18,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserQueryDto } from './dto/user-query.dto';
+import { AssignRoleDto } from './dto/role-assignment.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
@@ -194,5 +196,107 @@ export class UsersController {
       id: Number(user.id),
       organizationId: Number(user.organizationId),
     });
+  }
+
+  /**
+   * List available roles for organization
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('available-roles')
+  async listAvailableRoles(@CurrentUser('organizationId') organizationId: number) {
+    return this.usersService.listAvailableRoles(Number(organizationId));
+  }
+
+  /**
+   * Get user's assigned roles (active & historical) + effective permissions
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.BRANCH_MANAGER)
+  @Get(':userId/roles')
+  async getUserRoles(
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser('organizationId') organizationId: number,
+  ) {
+    return this.usersService.getUserRoles(userId, Number(organizationId));
+  }
+
+  /**
+   * Assign a role to a user
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchScopeGuard)
+  @Roles(Role.SUPER_ADMIN, Role.BRANCH_MANAGER)
+  @Post(':userId/roles')
+  async assignRole(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() dto: AssignRoleDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.assignRole(userId, dto, {
+      id: Number(user.id),
+      organizationId: Number(user.organizationId),
+      role: user.role,
+    });
+  }
+
+  /**
+   * Make an assigned role the primary role for user
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchScopeGuard)
+  @Roles(Role.SUPER_ADMIN, Role.BRANCH_MANAGER)
+  @Patch(':userId/roles/:roleId/primary')
+  async makeRolePrimary(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('roleId', ParseIntPipe) roleId: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.makeRolePrimary(userId, roleId, {
+      id: Number(user.id),
+      organizationId: Number(user.organizationId),
+      role: user.role,
+    });
+  }
+
+  /**
+   * Get removal impact summary before removing a role from user
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.BRANCH_MANAGER)
+  @Get(':userId/roles/:roleId/removal-impact')
+  async getRoleRemovalImpact(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('roleId', ParseIntPipe) roleId: number,
+    @CurrentUser('organizationId') organizationId: number,
+  ) {
+    return this.usersService.getRoleRemovalImpact(userId, roleId, Number(organizationId));
+  }
+
+  /**
+   * Remove a role assignment from user
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchScopeGuard)
+  @Roles(Role.SUPER_ADMIN, Role.BRANCH_MANAGER)
+  @Delete(':userId/roles/:roleId')
+  async removeRole(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('roleId', ParseIntPipe) roleId: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.removeRole(userId, roleId, {
+      id: Number(user.id),
+      organizationId: Number(user.organizationId),
+      role: user.role,
+    });
+  }
+
+  /**
+   * Get effective permissions (union of active roles) for user
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get(':userId/effective-permissions')
+  async getEffectivePermissions(
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser('organizationId') organizationId: number,
+  ) {
+    return this.usersService.getEffectivePermissions(userId, Number(organizationId));
   }
 }

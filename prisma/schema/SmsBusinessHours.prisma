@@ -1,0 +1,19 @@
+model SmsBusinessHours {
+  id             Int              @id @default(autoincrement())
+  organizationId Int
+  organization   SmsOrganization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branchId       Int?
+  branch         SmsBranch?       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int
+  isOpen         Boolean          @default(true)
+  openTime       String?
+  closeTime      String?
+  breakStartTime String?
+  breakEndTime   String?
+  spansMidnight  Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@map("sms_business_hours")
+  @@unique([organizationId, branchId, dayOfWeek])
+}

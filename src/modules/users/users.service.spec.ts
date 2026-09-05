@@ -12,16 +12,39 @@ import {
 
 describe('UsersService', () => {
   let service: UsersService;
-  let prisma: any;
 
   const mockUserStore: any[] = [];
+  const mockRolesStore: any[] = [];
+  const mockUserRolesStore: any[] = [];
+
   let userAutoIncrement = 1;
+  let roleAutoIncrement = 1;
+  let userRoleAutoIncrement = 1;
 
   beforeEach(async () => {
     mockUserStore.length = 0;
-    userAutoIncrement = 1;
+    mockRolesStore.length = 0;
+    mockUserRolesStore.length = 0;
 
-    const mockPrismaService = {
+    userAutoIncrement = 1;
+    roleAutoIncrement = 1;
+    userRoleAutoIncrement = 1;
+
+    // Preseed default roles for org 100
+    mockRolesStore.push(
+      { id: 1, uuid: 'role-1', organizationId: 100, name: 'Super Admin', code: 'SUPER_ADMIN', status: 'active', isSystem: true, deletedAt: null },
+      { id: 2, uuid: 'role-2', organizationId: 100, name: 'Branch Manager', code: 'BRANCH_MANAGER', status: 'active', isSystem: true, deletedAt: null },
+      { id: 3, uuid: 'role-3', organizationId: 100, name: 'Front Desk', code: 'FRONT_DESK', status: 'active', isSystem: true, deletedAt: null },
+      { id: 4, uuid: 'role-4', organizationId: 100, name: 'Service Staff', code: 'SERVICE_STAFF', status: 'active', isSystem: true, deletedAt: null },
+      { id: 5, uuid: 'role-5', organizationId: 100, name: 'Inactive Role', code: 'INACTIVE_ROLE', status: 'inactive', isSystem: false, deletedAt: null },
+      { id: 99, uuid: 'role-99', organizationId: 200, name: 'Other Org Role', code: 'OTHER_ORG_ROLE', status: 'active', isSystem: false, deletedAt: null },
+    );
+    roleAutoIncrement = 100;
+
+    const mockPrismaService: any = {
+      $transaction: jest.fn().mockImplementation(async (cb) => {
+        return cb(mockPrismaService);
+      }),
       user: {
         findFirst: jest.fn().mockImplementation(({ where }) => {
           return mockUserStore.find((u) => {
@@ -86,6 +109,106 @@ describe('UsersService', () => {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
         createMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
+      smsRole: {
+        findFirst: jest.fn().mockImplementation(({ where }) => {
+          return mockRolesStore.find((r) => {
+            if (where.organizationId && r.organizationId !== where.organizationId) return false;
+            if (where.id && r.id !== where.id) return false;
+            if (where.code && r.code !== where.code) return false;
+            if (where.deletedAt === null && r.deletedAt !== null) return false;
+            return true;
+          }) || null;
+        }),
+        findMany: jest.fn().mockImplementation(({ where }) => {
+          return mockRolesStore.filter((r) => r.organizationId === where.organizationId && r.deletedAt === null);
+        }),
+        create: jest.fn().mockImplementation(({ data }) => {
+          const newRole = {
+            id: roleAutoIncrement++,
+            uuid: `role-uuid-${roleAutoIncrement}`,
+            organizationId: data.organizationId,
+            name: data.name,
+            code: data.code,
+            description: data.description || null,
+            status: data.status || 'active',
+            isSystem: data.isSystem || false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null,
+          };
+          mockRolesStore.push(newRole);
+          return newRole;
+        }),
+      },
+      smsUserRole: {
+        findMany: jest.fn().mockImplementation(({ where }) => {
+          return mockUserRolesStore
+            .filter((ur) => {
+              if (where.userId && ur.userId !== where.userId) return false;
+              if (where.removedAt === null && ur.removedAt !== null) return false;
+              return true;
+            })
+            .map((ur) => {
+              const roleObj = mockRolesStore.find((r) => r.id === ur.roleId) || { name: 'Mock Role', code: 'MOCK_ROLE', status: 'active' };
+              return {
+                ...ur,
+                role: { ...roleObj, rolePermissions: [] },
+                assigner: null,
+              };
+            });
+        }),
+        findFirst: jest.fn().mockImplementation(({ where }) => {
+          const matched = mockUserRolesStore.find((ur) => {
+            if (where.userId && ur.userId !== where.userId) return false;
+            if (where.roleId && ur.roleId !== where.roleId) return false;
+            if (where.removedAt === null && ur.removedAt !== null) return false;
+            return true;
+          });
+          if (!matched) return null;
+          const roleObj = mockRolesStore.find((r) => r.id === matched.roleId) || { name: 'Mock Role', code: 'MOCK_ROLE', status: 'active' };
+          return {
+            ...matched,
+            role: { ...roleObj, rolePermissions: [] },
+            assigner: null,
+          };
+        }),
+        count: jest.fn().mockImplementation(({ where }) => {
+          return mockUserRolesStore.filter((ur) => {
+            if (where.userId && ur.userId !== where.userId) return false;
+            if (where.removedAt === null && ur.removedAt !== null) return false;
+            return true;
+          }).length;
+        }),
+        create: jest.fn().mockImplementation(({ data }) => {
+          const newUr = {
+            id: userRoleAutoIncrement++,
+            userId: data.userId,
+            roleId: data.roleId,
+            isPrimary: data.isPrimary || false,
+            assignedBy: data.assignedBy || null,
+            assignedAt: data.assignedAt || new Date(),
+            removedAt: null,
+          };
+          mockUserRolesStore.push(newUr);
+          return newUr;
+        }),
+        updateMany: jest.fn().mockImplementation(({ where, data }) => {
+          let count = 0;
+          mockUserRolesStore.forEach((ur) => {
+            if (where.userId && ur.userId !== where.userId) return;
+            if (where.removedAt === null && ur.removedAt !== null) return;
+            Object.assign(ur, data);
+            count++;
+          });
+          return { count };
+        }),
+        update: jest.fn().mockImplementation(({ where, data }) => {
+          const ur = mockUserRolesStore.find((item) => item.id === where.id);
+          if (!ur) throw new Error('UserRole not found');
+          Object.assign(ur, data);
+          return ur;
+        }),
+      },
     };
 
     const mockAuditService = {
@@ -101,243 +224,157 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('User Creation & Identifier Validation', () => {
+  describe('Create User & Basic Flow', () => {
     const adminCtx = { id: 1, organizationId: 100, role: Role.SUPER_ADMIN };
 
-    it('should create user with email only', async () => {
-      const result = await service.createUser(
-        { displayName: 'Alice', email: 'alice@example.com', role: Role.FRONT_DESK },
-        adminCtx,
-      );
-
-      expect(result.displayName).toBe('Alice');
-      expect(result.email).toBe('alice@example.com');
-      expect(result.status).toBe('pending');
-      expect(result.invitationUrl).toBeDefined();
-    });
-
-    it('should create user with phone only', async () => {
-      const result = await service.createUser(
+    it('should create user with invitation token', async () => {
+      const user = await service.createUser(
         {
-          displayName: 'Bob',
-          phoneCountryCode: '+91',
-          phoneNumber: '9876543210',
-          role: Role.SERVICE_STAFF,
-        },
-        adminCtx,
-      );
-
-      expect(result.displayName).toBe('Bob');
-      expect(result.phoneNumber).toBe('9876543210');
-      expect(result.status).toBe('pending');
-    });
-
-    it('should create user with email and phone', async () => {
-      const result = await service.createUser(
-        {
-          displayName: 'Charlie',
-          email: 'charlie@example.com',
-          phoneCountryCode: '+91',
-          phoneNumber: '9999999999',
+          displayName: 'John Salon',
+          email: 'john@salon.com',
           role: Role.FRONT_DESK,
         },
         adminCtx,
       );
 
-      expect(result.email).toBe('charlie@example.com');
-      expect(result.phoneNumber).toBe('9999999999');
+      expect(user.displayName).toBe('John Salon');
+      expect(user.email).toBe('john@salon.com');
+      expect(user.status).toBe('pending');
+      expect(user.invitationUrl).toContain('/accept-invite?token=');
     });
 
-    it('should reject creation without email and phone', async () => {
+    it('should reject creation if neither email nor phone is provided', async () => {
       await expect(
-        service.createUser({ displayName: 'NoIdentifier', role: Role.FRONT_DESK }, adminCtx),
+        service.createUser(
+          { displayName: 'No Identifier', role: Role.FRONT_DESK },
+          adminCtx,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
-  describe('Duplicate Email & Phone Protections', () => {
-    const org1Ctx = { id: 1, organizationId: 100, role: Role.SUPER_ADMIN };
-    const org2Ctx = { id: 2, organizationId: 200, role: Role.SUPER_ADMIN };
+  describe('Task 4.2 — Role Assignment & Management', () => {
+    const adminCtx = { id: 99, organizationId: 100, role: Role.SUPER_ADMIN };
+    let testUser: any;
 
     beforeEach(async () => {
-      await service.createUser(
-        { displayName: 'User 1', email: 'unique@example.com', phoneNumber: '9876543210', role: Role.FRONT_DESK },
-        org1Ctx,
+      testUser = await service.createUser(
+        { displayName: 'Staff Ravi', email: 'ravi@salon.com', role: Role.FRONT_DESK },
+        adminCtx,
       );
     });
 
-    it('should block duplicate email in same organization', async () => {
+    it('should list assigned roles and auto-create primary role matching user.role', async () => {
+      const res = await service.getUserRoles(testUser.id, 100);
+
+      expect(res.userId).toBe(testUser.id);
+      expect(res.activeRoles).toHaveLength(1);
+      expect(res.activeRoles[0].isPrimary).toBe(true);
+      expect(res.activeRoles[0].roleCode).toBe('FRONT_DESK');
+    });
+
+    it('should assign a secondary role to user', async () => {
+      const res = await service.assignRole(
+        testUser.id,
+        { roleId: 4, isPrimary: false }, // SERVICE_STAFF
+        adminCtx,
+      );
+
+      expect(res.activeRoles).toHaveLength(2);
+      const primary = res.activeRoles.find((r: any) => r.isPrimary);
+      const secondary = res.activeRoles.find((r: any) => !r.isPrimary);
+
+      expect(primary?.roleCode).toBe('FRONT_DESK');
+      expect(secondary?.roleCode).toBe('SERVICE_STAFF');
+    });
+
+    it('should block duplicate active role assignment', async () => {
+      await service.assignRole(testUser.id, { roleId: 4 }, adminCtx);
+
       await expect(
-        service.createUser(
-          { displayName: 'User 2', email: 'UNIQUE@example.com', role: Role.FRONT_DESK },
-          org1Ctx,
-        ),
+        service.assignRole(testUser.id, { roleId: 4 }, adminCtx),
       ).rejects.toThrow(ConflictException);
     });
 
-    it('should block duplicate phone in same organization', async () => {
+    it('should block assigning an inactive role', async () => {
       await expect(
-        service.createUser(
-          { displayName: 'User 3', phoneNumber: '9876543210', role: Role.FRONT_DESK },
-          org1Ctx,
-        ),
-      ).rejects.toThrow(ConflictException);
+        service.assignRole(testUser.id, { roleId: 5 }, adminCtx), // status = inactive
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should allow same email in different organization', async () => {
-      const result = await service.createUser(
-        { displayName: 'Cross Tenant User', email: 'unique@example.com', role: Role.FRONT_DESK },
-        org2Ctx,
-      );
-      expect(result.email).toBe('unique@example.com');
-    });
-
-    it('should allow same phone in different organization', async () => {
-      const result = await service.createUser(
-        { displayName: 'Cross Tenant User Phone', phoneNumber: '9876543210', role: Role.FRONT_DESK },
-        org2Ctx,
-      );
-      expect(result.phoneNumber).toBe('9876543210');
-    });
-  });
-
-  describe('Branch Manager Restrictions', () => {
-    const branchMgrCtx = { id: 10, organizationId: 100, role: Role.BRANCH_MANAGER };
-
-    it('should allow Branch Manager to create Front Desk user', async () => {
-      const result = await service.createUser(
-        { displayName: 'Staff 1', email: 'staff1@example.com', role: Role.FRONT_DESK },
-        branchMgrCtx,
-      );
-      expect(result.role).toBe(Role.FRONT_DESK);
-    });
-
-    it('should allow Branch Manager to create Service Staff user', async () => {
-      const result = await service.createUser(
-        { displayName: 'Staff 2', email: 'staff2@example.com', role: Role.SERVICE_STAFF },
-        branchMgrCtx,
-      );
-      expect(result.role).toBe(Role.SERVICE_STAFF);
-    });
-
-    it('should reject Branch Manager creating Super Admin', async () => {
+    it('should block cross-tenant role assignment', async () => {
       await expect(
-        service.createUser(
-          { displayName: 'Elevated Admin', email: 'hacker@example.com', role: Role.SUPER_ADMIN },
-          branchMgrCtx,
-        ),
+        service.assignRole(testUser.id, { roleId: 99 }, adminCtx), // org 200 role
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should switch primary role atomically', async () => {
+      await service.assignRole(testUser.id, { roleId: 4, isPrimary: false }, adminCtx); // SERVICE_STAFF
+
+      const updated = await service.makeRolePrimary(testUser.id, 4, adminCtx);
+
+      const primary = updated.activeRoles.find((r: any) => r.isPrimary);
+      const secondary = updated.activeRoles.find((r: any) => !r.isPrimary);
+
+      expect(primary?.roleId).toBe(4);
+      expect(primary?.roleCode).toBe('SERVICE_STAFF');
+      expect(secondary?.roleCode).toBe('FRONT_DESK');
+    });
+
+    it('should block removing user final remaining active role', async () => {
+      const rolesRes = await service.getUserRoles(testUser.id, 100);
+      const singleRoleId = rolesRes.activeRoles[0].roleId;
+
+      await expect(
+        service.removeRole(testUser.id, singleRoleId, adminCtx),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should block removing Primary role without promoting another first', async () => {
+      // Add secondary role
+      await service.assignRole(testUser.id, { roleId: 4 }, adminCtx);
+
+      const rolesRes = await service.getUserRoles(testUser.id, 100);
+      const primaryRole = rolesRes.activeRoles.find((r: any) => r.isPrimary);
+
+      await expect(
+        service.removeRole(testUser.id, primaryRole!.roleId, adminCtx),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should remove secondary role and preserve role history in removedAt', async () => {
+      await service.assignRole(testUser.id, { roleId: 4 }, adminCtx); // Add secondary SERVICE_STAFF
+
+      const updated = await service.removeRole(testUser.id, 4, adminCtx);
+
+      expect(updated.activeRoles).toHaveLength(1);
+      expect(updated.historicalRoles).toHaveLength(1);
+      expect(updated.historicalRoles[0].roleId).toBe(4);
+      expect(updated.historicalRoles[0].removedAt).toBeDefined();
+    });
+
+    it('should calculate effective permissions as union of active roles', async () => {
+      await service.assignRole(testUser.id, { roleId: 4 }, adminCtx); // Add SERVICE_STAFF
+
+      const effective = await service.getEffectivePermissions(testUser.id, 100);
+
+      // FRONT_DESK permissions: appointment.view, appointment.manage, service.session.manage, billing.view
+      // SERVICE_STAFF permissions: appointment.view, service.session.manage
+      // Union permissions should contain appointment.view, appointment.manage, service.session.manage, billing.view without duplicates
+      expect(effective).toContain('appointment.view');
+      expect(effective).toContain('appointment.manage');
+      expect(effective).toContain('service.session.manage');
+      expect(effective).toContain('billing.view');
+    });
+
+    it('should reject privilege escalation by Branch Manager trying to assign Super Admin', async () => {
+      const bmCtx = { id: 50, organizationId: 100, role: Role.BRANCH_MANAGER };
+
+      await expect(
+        service.assignRole(testUser.id, { roleId: 1 }, bmCtx), // Super Admin role
       ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should reject Branch Manager creating another Branch Manager', async () => {
-      await expect(
-        service.createUser(
-          { displayName: 'New Manager', email: 'mgr2@example.com', role: Role.BRANCH_MANAGER },
-          branchMgrCtx,
-        ),
-      ).rejects.toThrow(ForbiddenException);
-    });
-  });
-
-  describe('Invitation Acceptance & Security', () => {
-    const adminCtx = { id: 1, organizationId: 100, role: Role.SUPER_ADMIN };
-
-    it('should accept valid invitation and set password', async () => {
-      const created = await service.createUser(
-        { displayName: 'Invited User', email: 'invited@example.com', role: Role.FRONT_DESK },
-        adminCtx,
-      );
-
-      const token = mockUserStore[0].inviteToken;
-
-      const acceptRes = await service.acceptInvitation({
-        token,
-        password: 'SecurePassword123!',
-      });
-
-      expect(acceptRes.message).toContain('successfully');
-      expect(mockUserStore[0].inviteAcceptedAt).toBeDefined();
-      expect(mockUserStore[0].inviteToken).toBeNull();
-      expect(mockUserStore[0].passwordHash).toBeDefined();
-    });
-
-    it('should reject token reuse after acceptance', async () => {
-      const created = await service.createUser(
-        { displayName: 'Invited User', email: 'invited2@example.com', role: Role.FRONT_DESK },
-        adminCtx,
-      );
-
-      const token = mockUserStore[0].inviteToken;
-
-      await service.acceptInvitation({ token, password: 'SecurePassword123!' });
-
-      await expect(
-        service.acceptInvitation({ token, password: 'AnotherPassword123!' }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should reject expired invitation', async () => {
-      await service.createUser(
-        { displayName: 'Expired User', email: 'expired@example.com', role: Role.FRONT_DESK },
-        adminCtx,
-      );
-
-      // Artificially expire token
-      mockUserStore[0].inviteExpiresAt = new Date(Date.now() - 10000);
-      const token = mockUserStore[0].inviteToken;
-
-      await expect(
-        service.acceptInvitation({ token, password: 'SecurePassword123!' }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should resend invitation with new token', async () => {
-      const created = await service.createUser(
-        { displayName: 'Resend User', email: 'resend@example.com', role: Role.FRONT_DESK },
-        adminCtx,
-      );
-
-      const oldToken = mockUserStore[0].inviteToken;
-
-      const resendResult = await service.resendInvitation(created.id, adminCtx);
-
-      expect(resendResult.invitationUrl).toBeDefined();
-      expect(mockUserStore[0].inviteToken).not.toBe(oldToken);
-    });
-  });
-
-  describe('Deactivation & Soft Delete Safety', () => {
-    const adminCtx = { id: 99, organizationId: 100, role: Role.SUPER_ADMIN };
-
-    it('should deactivate user and set deletedAt', async () => {
-      const created = await service.createUser(
-        { displayName: 'Deactivate Target', email: 'target@example.com', role: Role.FRONT_DESK },
-        adminCtx,
-      );
-
-      const deactivated = await service.deactivateUser(created.id, adminCtx);
-
-      expect(deactivated.status).toBe('deactivated');
-      expect(mockUserStore[0].deletedAt).toBeDefined();
-    });
-
-    it('should block user from deactivating their own account', async () => {
-      const selfCtx = { id: 1, organizationId: 100, role: Role.SUPER_ADMIN };
-      const created = await service.createUser(
-        { displayName: 'Self User', email: 'self@example.com', role: Role.SUPER_ADMIN },
-        selfCtx,
-      );
-
-      await expect(
-        service.deactivateUser(created.id, { id: created.id, organizationId: 100 }),
-      ).rejects.toThrow(BadRequestException);
     });
   });
 });

@@ -9,6 +9,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  SUPER_ADMIN
+  BRANCH_MANAGER
+  ACCOUNTANT
+  FRONT_DESK
+  SERVICE_STAFF
+  INVENTORY_MANAGER
+  MARKETING_MANAGER
+  CUSTOMER
+}
+
 enum BusinessType {
   salon
   spa
@@ -25,13 +36,55 @@ enum OrganizationStatus {
   inactive
 }
 
-enum Role {
-  SUPER_ADMIN
-  BRANCH_MANAGER
-  ACCOUNTANT
-  FRONT_DESK
-  SERVICE_STAFF
-  INVENTORY_MANAGER
-  MARKETING_MANAGER
-  CUSTOMER
+enum ContactType {
+  primary
+  support
+  billing
+  emergency
+}
+
+enum AddressType {
+  registered
+  billing
+}
+
+enum TaxIdentifierType {
+  gstin
+  vat
+  ein
+  tin
+  pan
+  other
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  rejected
+}
+
+enum CurrencySymbolPosition {
+  prefix
+  suffix
+}
+
+enum TimeFormat {
+  twelveHour @map("12h")
+  twentyFourHour @map("24h")
+}
+
+enum FirstDayOfWeek {
+  sunday
+  monday
+}
+
+enum DateFormat {
+  DD_MM_YYYY
+  MM_DD_YYYY
+  YYYY_MM_DD
+}
+
+enum HolidayStatus {
+  active
+  cancelled
 }

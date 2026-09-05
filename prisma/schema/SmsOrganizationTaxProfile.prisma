@@ -1,0 +1,19 @@
+model SmsOrganizationTaxProfile {
+  id                     Int             @id @default(autoincrement())
+  organizationId         Int
+  organization           SmsOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  taxIdentifierType      String
+  taxIdentifierNumber    String
+  registeredBusinessName String
+  taxRegistrationDate    DateTime?
+  isTaxExempt            Boolean         @default(false)
+  documentUrl            String?
+  verificationStatus     String          @default("pending")
+  verificationNotes      String?
+  verifiedAt             DateTime?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  @@map("sms_organization_tax_profiles")
+  @@index([organizationId])
+}

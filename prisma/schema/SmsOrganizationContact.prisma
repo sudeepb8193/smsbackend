@@ -1,0 +1,21 @@
+model SmsOrganizationContact {
+  id                    Int             @id @default(autoincrement())
+  organizationId        Int
+  organization          SmsOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contactType           String          @default("primary")
+  fullName              String
+  designation           String?
+  phoneCountryCode      String?
+  phoneNumber           String?
+  phoneVerifiedAt       DateTime?
+  email                 String?
+  emailVerifiedAt       DateTime?
+  isDefaultPublic       Boolean         @default(false)
+  verificationToken     String?
+  verificationExpiresAt DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@map("sms_organization_contacts")
+  @@index([organizationId, contactType])
+}
