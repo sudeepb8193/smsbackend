@@ -1,0 +1,18 @@
+model SmsOrganizationSettings {
+  id                     Int             @id @default(autoincrement())
+  organizationId         Int             @unique
+  organization           SmsOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  defaultCurrencyCode    String          @default("USD")
+  currencySymbolPosition String          @default("prefix")
+  currencyDecimalPlaces  Int             @default(2)
+  timezone               String          @default("UTC")
+  dateFormat             String          @default("YYYY-MM-DD")
+  timeFormat             String          @default("12h")
+  firstDayOfWeek         String          @default("monday")
+  languageCode           String          @default("en")
+  fiscalYearStartMonth   Int             @default(1)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  @@map("sms_organization_settings")
+}

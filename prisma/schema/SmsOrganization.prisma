@@ -1,0 +1,30 @@
+model SmsOrganization {
+  id                  Int                         @id @default(autoincrement())
+  uuid                String                      @unique @default(uuid())
+  name                String
+  legalName           String?
+  slug                String                      @unique
+  businessType        String                      @default("salon")
+  logoUrl             String?
+  faviconUrl          String?
+  brandPrimaryColor   String?
+  brandSecondaryColor String?
+  status              String                      @default("onboarding")
+  onboardingStep      Int                         @default(1)
+  createdBy           Int?
+  creator             User?                       @relation("OrganizationCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  deletedAt           DateTime?
+
+  contacts            SmsOrganizationContact[]
+  addresses           SmsOrganizationAddress[]
+  taxProfiles         SmsOrganizationTaxProfile[]
+  settings            SmsOrganizationSettings?
+  businessHours       SmsBusinessHours[]
+  holidays            SmsHoliday[]
+
+  @@map("sms_organizations")
+  @@index([slug])
+  @@index([status])
+}
