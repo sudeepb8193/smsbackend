@@ -7,6 +7,20 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('register')
+  async register(
+    @Body() body: { fullName?: string; displayName?: string; email?: string; phoneNumber?: string; password?: string },
+  ) {
+    return this.authService.registerCustomer(body);
+  }
+
+  @Post('register/customer')
+  async registerCustomer(
+    @Body() body: { fullName?: string; displayName?: string; email?: string; phoneNumber?: string; password?: string },
+  ) {
+    return this.authService.registerCustomer(body);
+  }
+
   @Post('login')
   async login(
     @Req() req: any,
@@ -35,3 +49,4 @@ export class AuthController {
     return user;
   }
 }
+
