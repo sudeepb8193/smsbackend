@@ -1,0 +1,24 @@
+model sms_staffScheduleOverrides {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff             sms_staff @relation(fields: [staffId], references: [id])
+  overrideDate      DateTime  @db.Date
+  overrideType      sms_staffScheduleOverrides_overrideType
+  startTime         DateTime? @db.Time
+  endTime           DateTime? @db.Time
+  reason            String    @db.VarChar(255)
+  linkedSwapId String? @db.Uuid
+  linkedSwap        sms_staffScheduleOverrides? @relation("ScheduleSwap", fields: [linkedSwapId], references: [id])
+  linkedSwapOf      sms_staffScheduleOverrides[] @relation("ScheduleSwap")
+  approvalStatus    sms_approvalStatus @default(not_required)
+  approvedById String? @db.Uuid
+  approvedBy        sms_users? @relation("ScheduleOverrideApprovedBy", fields: [approvedById], references: [id])
+  createdById String @db.Uuid
+  createdBy         sms_users @relation("ScheduleOverrideCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([staffId, overrideDate])
+  @@index([approvalStatus])
+  @@map("sms_staffScheduleOverrides")
+}

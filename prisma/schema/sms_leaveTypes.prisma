@@ -1,0 +1,25 @@
+model sms_leaveTypes {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization                  sms_organizations @relation(fields: [organizationId], references: [id])
+  name                          String   @db.VarChar(80)
+  code                          String   @db.VarChar(20)
+  isPaid                        Boolean  @default(true)
+  accrualMethod                 sms_leaveTypes_accrualMethod @default(annual_grant)
+  annualEntitlementDays         Decimal  @default(0) @db.Decimal(5, 1)
+  monthlyAccrualDays            Decimal? @db.Decimal(4, 2)
+  maxCarryForwardDays           Decimal  @default(0) @db.Decimal(5, 1)
+  documentRequiredAfterDays     Decimal? @db.Decimal(4, 1)
+  minNoticeDays                 Int      @default(0) @db.SmallInt
+  applicableGender              sms_leaveTypes_applicableGender @default(all)
+  status                        sms_activeInactive @default(active)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  staffLeaveBalances  sms_staffLeaveBalances[]
+  staffLeaveRequests  sms_staffLeaveRequests[]
+
+  @@unique([organizationId, code])
+  @@index([status])
+  @@map("sms_leaveTypes")
+}

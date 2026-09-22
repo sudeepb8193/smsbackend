@@ -1,0 +1,15 @@
+model sms_branchContacts {
+  id                 String    @id @default(uuid()) @db.Uuid
+  branchId String @db.Uuid    @unique
+  branch            sms_branches @relation(fields: [branchId], references: [id])
+  phoneCountryCode  String?   @db.VarChar(5)
+  phoneNumber       String?   @db.VarChar(20)
+  phoneVerifiedAt   DateTime?
+  whatsappNumber    String?   @db.VarChar(20)
+  email             String?   @db.VarChar(150)
+  emailVerifiedAt   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("sms_branchContacts")
+}

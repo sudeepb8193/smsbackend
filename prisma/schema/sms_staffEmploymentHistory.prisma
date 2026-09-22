@@ -1,0 +1,18 @@
+model sms_staffEmploymentHistory {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff             sms_staff @relation(fields: [staffId], references: [id])
+  designation       String   @db.VarChar(100)
+  department        String   @db.VarChar(100)
+  employmentType    sms_staffEmploymentHistory_employmentType
+  joiningDate       DateTime @db.Date
+  effectiveFrom     DateTime @db.Date
+  confirmationDate  DateTime? @db.Date
+  changeReason      sms_staffEmploymentHistory_changeReason @default(initial_hire)
+  recordedById String? @db.Uuid
+  recordedBy        sms_users? @relation(fields: [recordedById], references: [id])
+  createdAt         DateTime @default(now())
+
+  @@index([staffId, effectiveFrom])
+  @@map("sms_staffEmploymentHistory")
+}

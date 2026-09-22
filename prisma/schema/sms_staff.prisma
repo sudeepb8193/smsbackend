@@ -1,0 +1,46 @@
+model sms_staff {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  userId String? @db.Uuid  @unique
+  user                sms_users? @relation("StaffUserLink", fields: [userId], references: [id])
+  employeeCode        String   @unique @db.VarChar(30)
+  fullName            String   @db.VarChar(150)
+  dateOfBirth         DateTime? @db.Date
+  gender              sms_staff_gender?
+  profilePhotoUrl     String?  @db.VarChar(500)
+  homeBranchId String @db.Uuid
+  homeBranch          sms_branches @relation(fields: [homeBranchId], references: [id])
+  employmentStatus    sms_staff_employmentStatus @default(active)
+  createdById String? @db.Uuid
+  createdBy           sms_users? @relation("StaffCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  staffContacts                sms_staffContacts?
+  staffEmergencyContacts        sms_staffEmergencyContacts[]
+  staffEmploymentHistory        sms_staffEmploymentHistory[]
+  staffQualifications           sms_staffQualifications[]
+  staffDocuments                sms_staffDocuments[]
+  staffBranchAssignments        sms_staffBranchAssignments[]
+  staffPermissionOverrides      sms_staffPermissionOverrides[]
+  branchManagerAssignments      sms_branchManagerAssignments[]
+  staffDesignations             sms_staffDesignations[]
+  staffSkillRatings              sms_staffSkillRatings[]
+  staffServices                  sms_staffServices[]
+  staffCommissionRates           sms_staffCommissionRates[]
+  staffWeeklySchedules           sms_staffWeeklySchedules[]
+  staffAvailabilityPreferences   sms_staffAvailabilityPreferences[]
+  staffScheduleOverrides         sms_staffScheduleOverrides[]
+  staffBlockedTime               sms_staffBlockedTime[]
+  staffAttendance                sms_staffAttendance[]
+  staffAttendanceCorrections     sms_staffAttendanceCorrections[]
+  attendancePeriodApprovals      sms_attendancePeriodApprovals[]
+  staffAttendanceMonthlySummary  sms_staffAttendanceMonthlySummary[]
+  staffLeaveBalances             sms_staffLeaveBalances[]
+  staffLeaveRequests             sms_staffLeaveRequests[]
+  customerPreferencesPreferred   sms_customerPreferences[]
+
+  @@index([homeBranchId, employmentStatus])
+  @@map("sms_staff")
+}

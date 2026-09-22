@@ -1,0 +1,15 @@
+model sms_staffDesignations {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff               sms_staff @relation(fields: [staffId], references: [id])
+  designationType     sms_staffDesignations_designationType
+  customLabel         String?  @db.VarChar(100)
+  isPrimary           Boolean  @default(false)
+  yearsOfExperience   Int?     @db.SmallInt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([staffId, designationType, customLabel])
+  @@index([staffId, isPrimary])
+  @@map("sms_staffDesignations")
+}

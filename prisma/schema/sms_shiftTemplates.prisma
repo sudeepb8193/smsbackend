@@ -1,0 +1,21 @@
+model sms_shiftTemplates {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  branchId String? @db.Uuid
+  branch            sms_branches? @relation(fields: [branchId], references: [id])
+  name              String    @db.VarChar(80)
+  startTime         DateTime  @db.Time
+  endTime           DateTime  @db.Time
+  breakStartTime    DateTime? @db.Time
+  breakEndTime      DateTime? @db.Time
+  colorTag          String    @default("default") @db.VarChar(20)
+  status            sms_shiftTemplates_status @default(active)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  staffWeeklySchedules sms_staffWeeklySchedules[]
+
+  @@unique([organizationId, branchId, name])
+  @@index([status])
+  @@map("sms_shiftTemplates")
+}

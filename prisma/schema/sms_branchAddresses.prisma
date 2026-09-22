@@ -1,0 +1,20 @@
+model sms_branchAddresses {
+  id                 String    @id @default(uuid()) @db.Uuid
+  branchId String @db.Uuid   @unique
+  branch         sms_branches @relation(fields: [branchId], references: [id])
+  addressLine1   String   @db.VarChar(200)
+  addressLine2   String?  @db.VarChar(200)
+  landmark       String?  @db.VarChar(120)
+  city           String   @db.VarChar(80)
+  state          String   @db.VarChar(80)
+  postalCode     String   @db.VarChar(20)
+  countryCode    String   @db.Char(2)
+  latitude       Decimal? @db.Decimal(10, 7)
+  longitude      Decimal? @db.Decimal(10, 7)
+  mapsUrl        String?  @db.VarChar(500)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([latitude, longitude])
+  @@map("sms_branchAddresses")
+}

@@ -1,0 +1,19 @@
+model sms_staffLeaveBalances {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff                   sms_staff @relation(fields: [staffId], references: [id])
+  leaveTypeId String @db.Uuid
+  leaveType                sms_leaveTypes @relation(fields: [leaveTypeId], references: [id])
+  balanceYear              Int      @db.SmallInt
+  openingBalanceDays       Decimal  @default(0) @db.Decimal(5, 1)
+  carriedForwardDays       Decimal  @default(0) @db.Decimal(5, 1)
+  accruedDays              Decimal  @default(0) @db.Decimal(5, 1)
+  usedDays                 Decimal  @default(0) @db.Decimal(5, 1)
+  manualAdjustmentDays     Decimal  @default(0) @db.Decimal(5, 1)
+  closingBalanceDays       Decimal  @default(0) @db.Decimal(5, 1)
+  updatedAt                DateTime @updatedAt
+  createdAt                DateTime @default(now())
+
+  @@unique([staffId, leaveTypeId, balanceYear])
+  @@map("sms_staffLeaveBalances")
+}

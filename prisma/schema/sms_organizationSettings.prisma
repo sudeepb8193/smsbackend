@@ -1,0 +1,23 @@
+model sms_organizationSettings {
+  id                    String            @id @default(uuid()) @db.Uuid
+
+  organizationId        String            @unique @db.Uuid
+  organization          sms_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  currencyCode          String            @default("INR") @db.Char(3)
+  timezone              String            @default("Asia/Kolkata") @db.VarChar(100)
+
+  dateFormat            String            @default("DD/MM/YYYY") @db.VarChar(30)
+  timeFormat            String            @default("12-hour") @db.VarChar(30)
+
+  firstDayOfWeek        Int               @default(1) @db.SmallInt
+
+  languageCode          String            @default("en") @db.VarChar(10)
+
+  fiscalYearStartMonth  Int               @default(4) @db.SmallInt
+
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@map("sms_organization_settings")
+}

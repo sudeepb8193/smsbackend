@@ -1,0 +1,15 @@
+model sms_userTwoFactorSettings {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid   @unique
+  user                     sms_users @relation(fields: [userId], references: [id])
+  method                   sms_userTwoFactorSettings_method @default(totp)
+  totpSecretEncrypted      String?  @db.VarChar(255)
+  isEnabled                Boolean  @default(false)
+  enabledAt                DateTime?
+  backupCodesEncrypted     String?  @db.Text
+  gracePeriodEndsAt        DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@map("sms_userTwoFactorSettings")
+}

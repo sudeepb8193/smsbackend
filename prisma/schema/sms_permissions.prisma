@@ -1,0 +1,17 @@
+model sms_permissions {
+  id                 String    @id @default(uuid()) @db.Uuid
+  moduleCode     String   @db.VarChar(60)
+  moduleLabel    String   @db.VarChar(100)
+  action         sms_permissions_action
+  permissionKey  String   @unique @db.VarChar(120)
+  label          String   @db.VarChar(120)
+  description    String?  @db.VarChar(255)
+  isLegacy       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  rolePermissions          sms_rolePermissions[]
+  staffPermissionOverrides sms_staffPermissionOverrides[]
+
+  @@index([moduleCode, action])
+  @@map("sms_permissions")
+}

@@ -1,0 +1,14 @@
+model sms_userStatusLogs {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user         sms_users @relation("StatusLogUser", fields: [userId], references: [id])
+  fromStatus   sms_userStatusLogs_status?
+  toStatus     sms_userStatusLogs_status
+  reason       String?   @db.VarChar(255)
+  changedById String @db.Uuid
+  changedBy    sms_users @relation("StatusLogChangedBy", fields: [changedById], references: [id])
+  changedAt    DateTime  @default(now())
+
+  @@index([userId, changedAt])
+  @@map("sms_userStatusLogs")
+}

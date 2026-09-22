@@ -1,0 +1,29 @@
+model sms_businessHours {
+  id              String            @id @default(uuid()) @db.Uuid
+
+  organizationId  String            @db.Uuid
+  organization    sms_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  branchId        String?           @db.Uuid
+  branch          sms_branches?     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  dayOfWeek       Int               @db.SmallInt
+
+  isOpen          Boolean           @default(true)
+
+  openTime        String?           @db.VarChar(10)
+  closeTime       String?           @db.VarChar(10)
+
+  breakStartTime  String?           @db.VarChar(10)
+  breakEndTime    String?           @db.VarChar(10)
+
+  spansMidnight   Boolean           @default(false)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+
+  @@index([organizationId])
+  @@index([organizationId, branchId])
+  @@map("sms_business_hours")
+}

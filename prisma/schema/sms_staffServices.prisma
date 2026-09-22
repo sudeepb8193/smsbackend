@@ -1,0 +1,19 @@
+model sms_staffServices {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff                       sms_staff @relation(fields: [staffId], references: [id])
+  serviceId String @db.Uuid
+  service                     sms_services @relation(fields: [serviceId], references: [id])
+  isActive                    Boolean  @default(true)
+  durationOverrideMinutes     Int?     @db.SmallInt
+  assignedById String? @db.Uuid
+  assignedBy                  sms_users? @relation("StaffServiceAssignedBy", fields: [assignedById], references: [id])
+  assignedAt                  DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  staffServiceBranchOverrides sms_staffServiceBranchOverrides[]
+
+  @@unique([staffId, serviceId])
+  @@index([serviceId, isActive])
+  @@map("sms_staffServices")
+}

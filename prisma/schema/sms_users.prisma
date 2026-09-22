@@ -1,0 +1,80 @@
+model sms_users {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId     String    @db.Uuid
+  organization       sms_organizations @relation("UserOrg", fields: [organizationId], references: [id])
+  displayName        String    @db.VarChar(120)
+  email              String?   @db.VarChar(150)
+  phoneCountryCode   String?   @db.VarChar(5)
+  phoneNumber        String?   @db.VarChar(20)
+  passwordHash       String?   @db.VarChar(255)
+  status             sms_userStatusLogs_status @default(pending_invite)
+  profilePhotoUrl    String?   @db.VarChar(500)
+  inviteToken        String?   @db.VarChar(100)
+  inviteExpiresAt    DateTime?
+  inviteAcceptedAt   DateTime?
+  lastLoginAt        DateTime?
+  lastLoginIp        String?   @db.VarChar(45)
+  createdById        String?   @db.Uuid
+  createdBy          sms_users?  @relation("UserInvitedBy", fields: [createdById], references: [id])
+  invitedUsers       sms_users[] @relation("UserInvitedBy")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  // Reverse relations from other modules' "createdBy" / actor style FKs
+  organizationsCreated       sms_organizations[]        @relation("OrgCreatedBy")
+  branchesCreated            sms_branches[]             @relation("BranchCreatedBy")
+  branchScheduleOverrides    sms_branchScheduleOverrides[]
+  holidaysCreated            sms_holidays[]
+  rolesCreated               sms_roles[]                @relation("RoleCreatedBy")
+  rolePermissionsGranted     sms_rolePermissions[]
+  staffPermissionOverridesGranted sms_staffPermissionOverrides[]
+  userRolesAssignedToMe      sms_userRoles[]            @relation("UserRoleUser")
+  userRolesAssignedByMe      sms_userRoles[]            @relation("UserRoleAssignedBy")
+  userBranchAssignmentsForMe sms_userBranchAssignments[] @relation("UserBranchUser")
+  userBranchAssignmentsByMe  sms_userBranchAssignments[] @relation("UserBranchAssignedBy")
+  userStatusLogsForMe        sms_userStatusLogs[]        @relation("StatusLogUser")
+  userStatusLogsChangedByMe  sms_userStatusLogs[]        @relation("StatusLogChangedBy")
+  userSessions               sms_userSessions[]
+  userTwoFactorSettings      sms_userTwoFactorSettings?
+  staffCreated               sms_staff[]                @relation("StaffCreatedBy")
+  staffLinked                sms_staff?                 @relation("StaffUserLink")
+  staffEmploymentHistoryRecorded sms_staffEmploymentHistory[]
+  staffQualificationsVerified sms_staffSkillRatings[]
+  staffDocumentsUploaded     sms_staffDocuments[]
+  staffBranchAssignmentsCreated sms_staffBranchAssignments[]
+  staffDesignationsCreated   sms_staffServices[]         @relation("StaffServiceAssignedBy")
+  staffServiceBranchOverridesCreated sms_staffServiceBranchOverrides[]
+  staffCommissionRatesCreated sms_staffCommissionRates[]
+  staffWeeklySchedulesCreated sms_staffWeeklySchedules[]
+  staffScheduleOverridesApproved sms_staffScheduleOverrides[] @relation("ScheduleOverrideApprovedBy")
+  staffScheduleOverridesCreated  sms_staffScheduleOverrides[] @relation("ScheduleOverrideCreatedBy")
+  staffBlockedTimeCreated    sms_staffBlockedTime[]
+  attendanceCorrectionsReviewed sms_staffAttendanceCorrections[] @relation("CorrectionReviewedBy")
+  attendanceCorrectionsCreated  sms_staffAttendanceCorrections[] @relation("CorrectionCreatedBy")
+  attendancePeriodApprovedByMe  sms_attendancePeriodApprovals[]  @relation("PeriodApprovedBy")
+  attendancePeriodReopenedByMe  sms_attendancePeriodApprovals[]  @relation("PeriodReopenedBy")
+  leaveApprovalActions       sms_leaveApprovalLogs[]
+  leaveBlackoutPeriodsCreated sms_leaveBlackoutPeriods[]
+  serviceCategoriesCreated   sms_serviceCategories[]
+  serviceCategoryMediaUploaded sms_serviceCategoryMedia[]
+  servicesCreated            sms_services[]
+  serviceMediaUploaded       sms_serviceMedia[]
+  serviceBranchPricingCreated sms_serviceBranchPricing[]
+  serviceBranchAvailabilityCreated sms_serviceBranchAvailability[]
+  servicePackagesCreated     sms_servicePackages[]
+  addonsCreated              sms_addons[]
+  resourcesCreated           sms_resources[]
+  resourceBlockedTimeCreated sms_resourceBlockedTime[]
+  resourceMaintenanceLogsCreated sms_resourceMaintenanceLogs[]
+  customersCreated           sms_customers[]
+  customerNotesCreated       sms_customerNotes[]
+  customerTagsAdded          sms_customerTags[]
+  customerMergesPerformed    sms_customerMergeLogs[]
+  packageUsageLogsRecorded   sms_customerPackageUsageLogs[]
+  userPasswordResets         sms_userPasswordResets[]
+
+  @@index([organizationId, email])
+  @@index([organizationId, phoneNumber])
+  @@map("sms_users")
+}

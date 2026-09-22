@@ -1,0 +1,13 @@
+model sms_serviceRequiredResources {
+  id                 String    @id @default(uuid()) @db.Uuid
+  serviceId String @db.Uuid
+  service             sms_services @relation(fields: [serviceId], references: [id])
+  resourceTypeId String @db.Uuid
+  resourceType        sms_resourceTypes @relation(fields: [resourceTypeId], references: [id])
+  quantityRequired    Int      @default(1) @db.SmallInt
+  requirementLevel    sms_serviceRequiredResources_requirementLevel @default(required)
+  createdAt           DateTime @default(now())
+
+  @@unique([serviceId, resourceTypeId])
+  @@map("sms_serviceRequiredResources")
+}

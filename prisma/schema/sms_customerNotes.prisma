@@ -1,0 +1,13 @@
+model sms_customerNotes {
+  id                 String    @id @default(uuid()) @db.Uuid
+  customerId String @db.Uuid
+  customer      sms_customers @relation(fields: [customerId], references: [id])
+  noteText      String   @db.Text
+  visibility    sms_customerNotes_visibility @default(all_staff)
+  createdById String @db.Uuid
+  createdBy     sms_users @relation(fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([customerId, createdAt])
+  @@map("sms_customerNotes")
+}

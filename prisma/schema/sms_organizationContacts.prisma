@@ -1,0 +1,29 @@
+model sms_organizationContacts {
+  id                  String       @id @default(uuid()) @db.Uuid
+
+  organizationId      String       @db.Uuid
+  organization        sms_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  contactType         sms_organizationContacts_contactType
+
+  contactName         String?      @db.VarChar(150)
+
+  email               String?      @db.VarChar(255)
+  emailVerified       Boolean      @default(false)
+
+  phoneCountryCode    String?      @db.VarChar(10)
+  phoneNumber         String?      @db.VarChar(20)
+
+  isDefaultPublic     Boolean      @default(false)
+
+  sameAsPrimary       Boolean      @default(false)
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  deletedAt           DateTime?
+
+  @@index([organizationId])
+  @@index([organizationId, contactType])
+  @@index([organizationId, isDefaultPublic])
+  @@map("sms_organization_contacts")
+}

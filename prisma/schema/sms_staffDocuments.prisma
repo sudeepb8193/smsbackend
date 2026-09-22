@@ -1,0 +1,19 @@
+model sms_staffDocuments {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff                    sms_staff @relation(fields: [staffId], references: [id])
+  category                 sms_staffDocuments_category
+  fileName                 String   @db.VarChar(255)
+  fileUrl                  String   @db.VarChar(500)
+  fileSizeBytes            Int?
+  status                   sms_staffDocuments_status @default(active)
+  supersedesDocumentId String? @db.Uuid
+  supersedes               sms_staffDocuments? @relation("DocumentSupersede", fields: [supersedesDocumentId], references: [id])
+  supersededBy             sms_staffDocuments[] @relation("DocumentSupersede")
+  uploadedById String @db.Uuid
+  uploadedBy               sms_users @relation(fields: [uploadedById], references: [id])
+  createdAt                DateTime @default(now())
+
+  @@index([staffId, category, status])
+  @@map("sms_staffDocuments")
+}

@@ -1,0 +1,20 @@
+model sms_staffContacts {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid   @unique
+  staff                          sms_staff @relation(fields: [staffId], references: [id])
+  personalPhone                  String?  @db.VarChar(20)
+  personalEmail                  String?  @db.VarChar(150)
+  addressLine1                   String?  @db.VarChar(200)
+  addressLine2                   String?  @db.VarChar(200)
+  city                           String?  @db.VarChar(80)
+  state                          String?  @db.VarChar(80)
+  postalCode                     String?  @db.VarChar(20)
+  countryCode                    String?  @db.Char(2)
+  bloodGroup                     String?  @db.VarChar(5)
+  maritalStatus                  sms_staffContacts_maritalStatus?
+  nationalIdNumberEncrypted      String?  @db.VarChar(255)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  @@map("sms_staffContacts")
+}

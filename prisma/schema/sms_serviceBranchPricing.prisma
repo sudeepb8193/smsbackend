@@ -1,0 +1,18 @@
+model sms_serviceBranchPricing {
+  id                 String    @id @default(uuid()) @db.Uuid
+  serviceId String @db.Uuid
+  service                     sms_services @relation(fields: [serviceId], references: [id])
+  branchId String @db.Uuid
+  branch                      sms_branches @relation(fields: [branchId], references: [id])
+  priceAmount                 Decimal   @db.Decimal(10, 2)
+  durationOverrideMinutes     Int?      @db.SmallInt
+  effectiveFrom               DateTime  @db.Date
+  effectiveTo                 DateTime? @db.Date
+  createdById String? @db.Uuid
+  createdBy                   sms_users? @relation(fields: [createdById], references: [id])
+  createdAt                   DateTime  @default(now())
+
+  @@unique([serviceId, branchId, effectiveFrom])
+  @@index([branchId, effectiveFrom])
+  @@map("sms_serviceBranchPricing")
+}

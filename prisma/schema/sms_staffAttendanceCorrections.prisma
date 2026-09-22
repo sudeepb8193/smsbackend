@@ -1,0 +1,24 @@
+model sms_staffAttendanceCorrections {
+  id                 String    @id @default(uuid()) @db.Uuid
+  attendanceId String? @db.Uuid
+  attendance               sms_staffAttendance? @relation(fields: [attendanceId], references: [id])
+  staffId String @db.Uuid
+  staff                    sms_staff @relation(fields: [staffId], references: [id])
+  correctionDate           DateTime  @db.Date
+  requestedCheckInAt       DateTime?
+  requestedCheckOutAt      DateTime?
+  reason                   String    @db.VarChar(255)
+  supportingDocumentUrl    String?   @db.VarChar(500)
+  status                   sms_staffAttendanceCorrections_status @default(pending)
+  reviewedById String? @db.Uuid
+  reviewedBy               sms_users? @relation("CorrectionReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt               DateTime?
+  reviewNotes              String?   @db.VarChar(255)
+  createdById String @db.Uuid
+  createdBy                sms_users @relation("CorrectionCreatedBy", fields: [createdById], references: [id])
+  createdAt                DateTime  @default(now())
+
+  @@index([staffId, correctionDate])
+  @@index([status])
+  @@map("sms_staffAttendanceCorrections")
+}

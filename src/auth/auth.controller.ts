@@ -1,52 +1,61 @@
-import { Controller, Post, Body, Get, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Register a new Salon Owner + Organization
+   */
   @Post('register')
-  async register(
-    @Body() body: { fullName?: string; displayName?: string; email?: string; phoneNumber?: string; password?: string },
-  ) {
-    return this.authService.registerCustomer(body);
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
   }
 
-  @Post('register/customer')
-  async registerCustomer(
-    @Body() body: { fullName?: string; displayName?: string; email?: string; phoneNumber?: string; password?: string },
-  ) {
-    return this.authService.registerCustomer(body);
-  }
-
+  /**
+   * Log in user (Rate-limited to 5 attempts per minute per IP)
+   */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
-  async login(
-    @Req() req: any,
-    @Body() body: { email?: string; phoneNumber?: string; identifier?: string; password?: string },
-  ) {
-    const identifier = body.identifier || body.email || body.phoneNumber;
-    if (!identifier || !body.password) {
-      throw new UnauthorizedException('Email or phone number and password are required.');
-    }
-    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
-    const user = await this.authService.validateUser(identifier, body.password, String(clientIp));
-    if (!user) {
-      throw new UnauthorizedException('Invalid login credentials.');
-    }
-    return this.authService.login(user);
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() dto: LoginDto, @Req() req: Request) {
+    const clientIp = req.ip || req.socket.remoteAddress;
+    return this.authService.login(dto, clientIp);
   }
 
-  @Post('seed-demo')
-  async seedDemo() {
-    return this.authService.seedDemoUser();
+  /**
+   * Refresh Access Token
+   */
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto);
   }
 
+  /**
+   * Get Current Authenticated User Profile
+   */
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  getProfile(@CurrentUser() user: any) {
-    return user;
+  @HttpCode(HttpStatus.OK)
+  async getProfile(@Req() req: any) {
+    return this.authService.getProfile(String(req.user.id));
   }
 }
-

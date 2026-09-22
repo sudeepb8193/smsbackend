@@ -1,0 +1,42 @@
+model sms_organizations {
+  id                    String                          @id @default(uuid()) @db.Uuid
+  name                  String                          @db.VarChar(150)
+  legalName             String?                         @db.VarChar(150)
+  slug                  String                          @unique @db.VarChar(160)
+  businessType          sms_organizations_businessType   @default(salon)
+  logoUrl               String?                         @db.VarChar(500)
+  faviconUrl            String?                         @db.VarChar(500)
+  brandPrimaryColor     String?                         @db.Char(7)
+  brandSecondaryColor   String?                         @db.Char(7)
+  status                sms_organizations_status         @default(onboarding)
+  onboardingStep        Int                             @default(0) @db.SmallInt
+  createdById           String?                         @db.Uuid
+  createdBy             sms_users?                      @relation("OrgCreatedBy", fields: [createdById], references: [id])
+  createdAt             DateTime                        @default(now())
+  updatedAt             DateTime                        @updatedAt
+  deletedAt             DateTime?
+
+  branches              sms_branches[]
+  roles                 sms_roles[]
+  users                 sms_users[]                     @relation("UserOrg")
+  organizationContacts  sms_organizationContacts[]
+  organizationAddresses sms_organizationAddresses[]
+  organizationTaxProfiles sms_organizationTaxProfiles[]
+  organizationSettings  sms_organizationSettings?
+  businessHours         sms_businessHours[]
+  holidays              sms_holidays[]
+  attendancePolicies    sms_attendancePolicies[]
+  leaveTypes            sms_leaveTypes[]
+  leaveBlackoutPeriods  sms_leaveBlackoutPeriods[]
+  serviceCategories     sms_serviceCategories[]
+  services              sms_services[]
+  servicePackages       sms_servicePackages[]
+  addons                sms_addons[]
+  resourceTypes         sms_resourceTypes[]
+  resources             sms_resources[]
+  customers             sms_customers[]
+  customerTags          sms_customerTags[]
+
+  @@index([status])
+  @@map("sms_organizations")
+}

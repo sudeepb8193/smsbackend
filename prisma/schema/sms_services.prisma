@@ -1,0 +1,38 @@
+model sms_services {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization                    sms_organizations @relation(fields: [organizationId], references: [id])
+  categoryId String @db.Uuid
+  category                        sms_serviceCategories @relation(fields: [categoryId], references: [id])
+  name                            String   @db.VarChar(150)
+  slug                            String   @db.VarChar(160)
+  description                     String?  @db.Text
+  basePriceAmount                 Decimal  @db.Decimal(10, 2)
+  baseDurationMinutes             Int      @db.SmallInt
+  isTaxInclusive                  Boolean  @default(false)
+  taxRateOverridePercentage       Decimal? @db.Decimal(5, 2)
+  defaultDiscountPercentage       Decimal  @default(0) @db.Decimal(5, 2)
+  onlineBookingEnabled            Boolean  @default(true)
+  status                          sms_services_status @default(active)
+  createdById String? @db.Uuid
+  createdBy                       sms_users? @relation(fields: [createdById], references: [id])
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+  deletedAt                       DateTime?
+
+  staffServices                sms_staffServices[]
+  staffCommissionRates          sms_staffCommissionRates[]
+  serviceBranchPricing          sms_serviceBranchPricing[]
+  serviceMedia                  sms_serviceMedia[]
+  serviceBranchAvailability     sms_serviceBranchAvailability[]
+  serviceCommissionDefaults     sms_serviceCommissionDefaults?
+  serviceRequiredProducts       sms_serviceRequiredProducts[]
+  serviceRequiredResources      sms_serviceRequiredResources[]
+  servicePackageItems           sms_servicePackageItems[]
+  customerPackageUsageLogs      sms_customerPackageUsageLogs[]
+  addonServiceMappings          sms_addonServiceMappings[]
+
+  @@unique([organizationId, slug])
+  @@index([categoryId, status])
+  @@map("sms_services")
+}

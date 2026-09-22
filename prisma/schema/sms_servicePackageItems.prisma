@@ -1,0 +1,14 @@
+model sms_servicePackageItems {
+  id                 String    @id @default(uuid()) @db.Uuid
+  packageId String @db.Uuid
+  package                 sms_servicePackages @relation(fields: [packageId], references: [id])
+  serviceId String @db.Uuid
+  service                 sms_services @relation(fields: [serviceId], references: [id])
+  quantityIncluded        Int      @default(1) @db.SmallInt
+  servicePriceSnapshot    Decimal  @db.Decimal(10, 2)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([packageId, serviceId])
+  @@map("sms_servicePackageItems")
+}

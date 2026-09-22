@@ -1,0 +1,16 @@
+model sms_customerTags {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization      sms_organizations @relation(fields: [organizationId], references: [id])
+  customerId String @db.Uuid
+  customer          sms_customers @relation(fields: [customerId], references: [id])
+  tagName           String   @db.VarChar(50)
+  tagColor          String?  @db.VarChar(20)
+  addedById String @db.Uuid
+  addedBy           sms_users @relation(fields: [addedById], references: [id])
+  addedAt           DateTime @default(now())
+
+  @@unique([customerId, tagName])
+  @@index([organizationId, tagName])
+  @@map("sms_customerTags")
+}

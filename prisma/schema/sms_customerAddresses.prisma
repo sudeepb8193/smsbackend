@@ -1,0 +1,18 @@
+model sms_customerAddresses {
+  id                 String    @id @default(uuid()) @db.Uuid
+  customerId String @db.Uuid
+  customer        sms_customers @relation(fields: [customerId], references: [id])
+  addressType     sms_customerAddresses_addressType @default(home)
+  addressLine1    String   @db.VarChar(200)
+  addressLine2    String?  @db.VarChar(200)
+  city            String   @db.VarChar(80)
+  state           String?  @db.VarChar(80)
+  postalCode      String?  @db.VarChar(20)
+  countryCode     String   @db.Char(2)
+  isPrimary       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([customerId, isPrimary])
+  @@map("sms_customerAddresses")
+}

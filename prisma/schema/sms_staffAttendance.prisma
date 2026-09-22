@@ -1,0 +1,24 @@
+model sms_staffAttendance {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff             sms_staff @relation(fields: [staffId], references: [id])
+  branchId String @db.Uuid
+  branch            sms_branches @relation(fields: [branchId], references: [id])
+  attendanceDate    DateTime @db.Date
+  checkInAt         DateTime?
+  checkInMethod     sms_checkinMethod?
+  checkOutAt        DateTime?
+  checkOutMethod    sms_checkinMethod?
+  status            sms_staffAttendance_status @default(absent)
+  workedMinutes     Int?
+  overtimeMinutes   Int      @default(0)
+  isLocked          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  staffAttendanceCorrections sms_staffAttendanceCorrections[]
+
+  @@unique([staffId, attendanceDate])
+  @@index([branchId, attendanceDate, status])
+  @@map("sms_staffAttendance")
+}

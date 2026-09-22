@@ -1,26 +1,20 @@
 import { Module } from '@nestjs/common';
+import { OrganizationController } from './controllers/organization.controller';
+import { OrganizationContactController } from './controllers/organization-contact.controller';
+import { OrganizationAddressController } from './controllers/organization-address.controller';
+import { OrganizationBusinessHoursController } from './controllers/organization-business-hours.controller';
+import { OrganizationHolidayController } from './controllers/organization-holiday.controller';
+import { OrganizationService } from './services/organization.service';
+import { OrganizationSlugService } from './services/organization-slug.service';
+import { OrganizationLifecycleService } from './services/organization-lifecycle.service';
+import { OrganizationContactService } from './services/organization-contact.service';
+import { OrganizationAddressService } from './services/organization-address.service';
+import { OrganizationBusinessHoursService } from './services/organization-business-hours.service';
+import { OrganizationHolidayService } from './services/organization-holiday.service';
+import { FileStorageService } from './services/file-storage.service';
+import { OrganizationProfileActivationValidator } from './validators/organization-activation.validator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { PrismaModule } from '../../database/prisma.module';
-
-import { OrganizationController } from './organization.controller';
-import { OrganizationService } from './organization.service';
-
-import { OrganizationContactController } from './contacts/organizationContact.controller';
-import { OrganizationContactService } from './contacts/organizationContact.service';
-
-import { OrganizationAddressController } from './addresses/organizationAddress.controller';
-import { OrganizationAddressService } from './addresses/organizationAddress.service';
-
-import { OrganizationTaxController } from './tax/organizationTax.controller';
-import { OrganizationTaxService } from './tax/organizationTax.service';
-
-import { OrganizationSettingsController } from './settings/organizationSettings.controller';
-import { OrganizationSettingsService } from './settings/organizationSettings.service';
-
-import { BusinessHoursController } from './business-hours/businessHours.controller';
-import { BusinessHoursService } from './business-hours/businessHours.service';
-
-import { HolidayController } from './holidays/holiday.controller';
-import { HolidayService } from './holidays/holiday.service';
 
 @Module({
   imports: [PrismaModule],
@@ -28,28 +22,30 @@ import { HolidayService } from './holidays/holiday.service';
     OrganizationController,
     OrganizationContactController,
     OrganizationAddressController,
-    OrganizationTaxController,
-    OrganizationSettingsController,
-    BusinessHoursController,
-    HolidayController,
+    OrganizationBusinessHoursController,
+    OrganizationHolidayController,
   ],
   providers: [
     OrganizationService,
+    OrganizationSlugService,
+    OrganizationLifecycleService,
     OrganizationContactService,
     OrganizationAddressService,
-    OrganizationTaxService,
-    OrganizationSettingsService,
-    BusinessHoursService,
-    HolidayService,
+    OrganizationBusinessHoursService,
+    OrganizationHolidayService,
+    FileStorageService,
+    OrganizationProfileActivationValidator,
+    RolesGuard,
   ],
   exports: [
     OrganizationService,
+    OrganizationSlugService,
+    OrganizationLifecycleService,
     OrganizationContactService,
     OrganizationAddressService,
-    OrganizationTaxService,
-    OrganizationSettingsService,
-    BusinessHoursService,
-    HolidayService,
+    OrganizationBusinessHoursService,
+    OrganizationHolidayService,
+    FileStorageService,
   ],
 })
 export class OrganizationModule {}

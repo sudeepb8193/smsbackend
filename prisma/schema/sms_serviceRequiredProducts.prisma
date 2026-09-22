@@ -1,0 +1,14 @@
+model sms_serviceRequiredProducts {
+  id                 String    @id @default(uuid()) @db.Uuid
+  serviceId String @db.Uuid
+  service               sms_services @relation(fields: [serviceId], references: [id])
+  productId String @db.Uuid   // FK -> sms_products.id (Module 23, not yet modeled)
+  quantityPerService    Decimal  @db.Decimal(8, 2)
+  unit                  String   @db.VarChar(20)
+  isMandatory           Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([serviceId, productId])
+  @@map("sms_serviceRequiredProducts")
+}

@@ -1,7 +1,13 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../database/prisma.service';
-import { Role } from '@prisma/client';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -11,148 +17,300 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async registerCustomer(dto: { fullName?: string; displayName?: string; email?: string; phoneNumber?: string; password?: string }) {
-    const displayName = (dto.fullName || dto.displayName || '').trim();
-    const email = dto.email ? dto.email.trim().toLowerCase() : null;
-    const phoneNumber = dto.phoneNumber ? dto.phoneNumber.trim() : null;
+  /**
+   * Helper to generate a URL-safe unique slug for an organization
+   */
+  private async generateUniqueSlug(organizationName: string): Promise<string> {
+    const baseSlug =
+      organizationName
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 140) || 'salon';
 
-    if (!displayName) {
-      throw new BadRequestException('Full Name is required.');
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.prisma.sms_organizations.findUnique({
+        where: { slug },
+      });
+      if (!existing) {
+        return slug;
+      }
+      counter += 1;
+      slug = `${baseSlug}-${counter}`;
     }
+  }
 
-    if (!email && !phoneNumber) {
-      throw new BadRequestException('Either Email address or Phone Number is required.');
-    }
+  /**
+   * Register a new Salon Owner (Atomic Organization + User Creation)
+   */
+  async register(dto: RegisterDto) {
+    const email = dto.email.trim().toLowerCase();
 
-    if (!dto.password || dto.password.length < 8) {
-      throw new BadRequestException('Password must be at least 8 characters long.');
-    }
+    // Generate unique organization slug
+    const slug = await this.generateUniqueSlug(dto.organizationName);
 
-    // Check email uniqueness
-    if (email) {
-      const existingEmailUser = await this.prisma.user.findFirst({
+    // Hash password with 12 salt rounds
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    // Execute atomic creation in a single Prisma transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Create Organization
+      const org = await tx.sms_organizations.create({
+        data: {
+          name: dto.organizationName.trim(),
+          slug,
+          status: 'onboarding',
+        },
+      });
+
+      // Check email uniqueness within new org (trivially true, but handle duplicate email globally gracefully if needed)
+      const existingEmail = await tx.sms_users.findFirst({
         where: {
+          organizationId: org.id,
           email: { equals: email, mode: 'insensitive' },
         },
       });
-      if (existingEmailUser) {
-        throw new BadRequestException('An account with this email address already exists.');
-      }
-    }
 
-    // Check phone uniqueness
-    if (phoneNumber) {
-      const existingPhoneUser = await this.prisma.user.findFirst({
-        where: {
-          phoneNumber: phoneNumber,
+      if (existingEmail) {
+        throw new ConflictException({
+          code: 'EMAIL_ALREADY_REGISTERED',
+          message: 'An account with this email address already exists',
+        });
+      }
+
+      // 2. Create Super Admin User
+      const user = await tx.sms_users.create({
+        data: {
+          organizationId: org.id,
+          displayName: dto.fullName.trim(),
+          email,
+          passwordHash,
+          status: 'active',
+          inviteAcceptedAt: new Date(),
         },
       });
-      if (existingPhoneUser) {
-        throw new BadRequestException('An account with this phone number already exists.');
-      }
-    }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+      // 3. Seed System Super Admin Role for Organization & Assign
+      const superAdminRole = await tx.sms_roles.create({
+        data: {
+          organizationId: org.id,
+          name: 'Super Admin',
+          slug: 'super-admin',
+          description: 'Full administrative access to organization',
+          roleType: 'system',
+          status: 'active',
+        },
+      });
 
-    // Strictly assign Role.CUSTOMER on backend regardless of client payload
-    const newUser = await this.prisma.user.create({
-      data: {
-        organizationId: 1,
-        displayName,
-        email,
-        phoneNumber,
-        passwordHash,
-        role: Role.CUSTOMER,
-      },
+      await tx.sms_userRoles.create({
+        data: {
+          userId: user.id,
+          roleId: superAdminRole.id,
+          isPrimary: true,
+          assignedAt: new Date(),
+        },
+      });
+
+      return { org, user };
     });
 
-    const { passwordHash: _ph, inviteToken: _it, ...safeUser } = newUser;
+    const userObj = {
+      id: result.user.id,
+      displayName: result.user.displayName,
+      email: result.user.email,
+      organizationId: result.user.organizationId,
+    };
+
+    const tokens = this.generateTokens({
+      sub: userObj.id,
+      organizationId: userObj.organizationId,
+      email: userObj.email,
+    });
 
     return {
-      message: 'Customer account created successfully.',
-      user: safeUser,
+      user: userObj,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 
-  async validateUser(identifier: string, pass: string, clientIp?: string) {
-    const trimmed = identifier.trim();
-    // Search user by email or phone
-    const user = await this.prisma.user.findFirst({
+  /**
+   * Authenticate Existing User
+   */
+  async login(dto: LoginDto, clientIp?: string) {
+    const email = dto.email.trim().toLowerCase();
+
+    // Look up user by email
+    const user = await this.prisma.sms_users.findFirst({
       where: {
-        OR: [
-          { email: { equals: trimmed.toLowerCase(), mode: 'insensitive' } },
-          { phoneNumber: trimmed },
-        ],
+        email: { equals: email, mode: 'insensitive' },
+        deletedAt: null,
       },
     });
 
-    if (!user) {
-      return null;
-    }
-
-    if (user.deletedAt) {
-      throw new UnauthorizedException('User account is deactivated.');
-    }
-
-    if (user.passwordHash && (await bcrypt.compare(pass, user.passwordHash))) {
-      // Record last login details
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          lastLoginAt: new Date(),
-          lastLoginIp: clientIp || null,
-        },
+    // Timing-attack safe generic credential error
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
       });
-
-      const { passwordHash, inviteToken, ...result } = user;
-      return result;
     }
-    return null;
-  }
 
-  async login(user: any) {
-    const payload = {
+    const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordMatch) {
+      throw new UnauthorizedException({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
+      });
+    }
+
+    // Check account status
+    if (user.status !== 'active') {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_INACTIVE',
+        message: 'Your account is inactive or suspended',
+      });
+    }
+
+    // Record last login metadata
+    await this.prisma.sms_users.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+        lastLoginIp: clientIp || null,
+      },
+    });
+
+    const userObj = {
+      id: user.id,
+      displayName: user.displayName,
       email: user.email,
-      sub: user.id,
-      role: user.role,
       organizationId: user.organizationId,
     };
 
+    const tokens = this.generateTokens({
+      sub: userObj.id,
+      organizationId: userObj.organizationId,
+      email: userObj.email,
+    });
+
     return {
-      accessToken: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        uuid: user.uuid,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        displayName: user.displayName,
-        role: user.role,
-        organizationId: user.organizationId,
-        lastLoginAt: user.lastLoginAt,
-      },
+      user: userObj,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 
-  async seedDemoUser() {
-    let admin = await this.prisma.user.findFirst({
-      where: { role: Role.SUPER_ADMIN },
-    });
+  /**
+   * Refresh Access Token using Refresh Token
+   */
+  async refresh(dto: RefreshTokenDto) {
+    const refreshSecret =
+      process.env.JWT_REFRESH_SECRET ||
+      'default_refresh_secret_key_change_in_env';
 
-    if (!admin) {
-      const hashedPassword = await bcrypt.hash('Admin@123456', 10);
-      admin = await this.prisma.user.create({
-        data: {
-          organizationId: 1,
-          email: 'admin@salon.com',
-          displayName: 'Super Admin',
-          passwordHash: hashedPassword,
-          inviteAcceptedAt: new Date(),
-          role: Role.SUPER_ADMIN,
-        },
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(dto.refreshToken, {
+        secret: refreshSecret,
+      });
+    } catch {
+      throw new UnauthorizedException({
+        code: 'TOKEN_INVALID',
+        message: 'Invalid or expired refresh token',
       });
     }
 
-    return this.login(admin);
+    const userId = String(payload.sub);
+    const user = await this.prisma.sms_users.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.deletedAt || user.status !== 'active') {
+      throw new UnauthorizedException({
+        code: 'TOKEN_INVALID',
+        message: 'User is inactive or no longer exists',
+      });
+    }
+
+    const userObj = {
+      id: user.id,
+      displayName: user.displayName,
+      email: user.email,
+      organizationId: user.organizationId,
+    };
+
+    const tokens = this.generateTokens({
+      sub: userObj.id,
+      organizationId: userObj.organizationId,
+      email: userObj.email,
+    });
+
+    return {
+      user: userObj,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
+  }
+
+  /**
+   * Get Current Authenticated User Profile (Fresh from DB)
+   */
+  async getProfile(userId: string) {
+    const user = await this.prisma.sms_users.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.deletedAt) {
+      throw new UnauthorizedException({
+        code: 'TOKEN_INVALID',
+        message: 'User profile not found',
+      });
+    }
+
+    return {
+      id: user.id,
+      displayName: user.displayName,
+      email: user.email,
+      organizationId: user.organizationId,
+      status: user.status,
+      lastLoginAt: user.lastLoginAt,
+    };
+  }
+
+  /**
+   * Issue signed Access Token (15m) and Refresh Token (7d)
+   */
+  private generateTokens(payload: {
+    sub: string;
+    organizationId: string;
+    email: string | null;
+  }) {
+    const accessSecret =
+      process.env.JWT_ACCESS_SECRET ||
+      'default_access_secret_key_change_in_env';
+    const refreshSecret =
+      process.env.JWT_REFRESH_SECRET ||
+      'default_refresh_secret_key_change_in_env';
+
+    const accessExpiry = process.env.JWT_ACCESS_EXPIRY || '15m';
+    const refreshExpiry = process.env.JWT_REFRESH_EXPIRY || '7d';
+
+    const accessToken = this.jwtService.sign(payload, {
+      secret: accessSecret,
+      expiresIn: accessExpiry as any,
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: refreshSecret,
+      expiresIn: refreshExpiry as any,
+    });
+
+    return { accessToken, refreshToken };
   }
 }
-
