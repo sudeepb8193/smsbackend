@@ -20,35 +20,32 @@ enum Role {
   CUSTOMER
 }
 
-enum BusinessType {
+// ---- Module 01: Organization ----
+enum sms_organizations_businessType {
   salon
   spa
-  unisexSalon
+  unisex_salon
   barbershop
-  wellnessCenter
+  wellness_center
   other
 }
-
-enum OrganizationStatus {
+enum sms_organizations_status {
   onboarding
   active
   suspended
   inactive
 }
-
-enum ContactType {
+enum sms_organizationContacts_contactType {
   primary
   support
   billing
   emergency
 }
-
-enum AddressType {
+enum sms_organizationAddresses_addressType {
   registered
   billing
 }
-
-enum TaxIdentifierType {
+enum sms_organizationTaxProfiles_taxIdentifierType {
   gstin
   vat
   ein
@@ -56,35 +53,359 @@ enum TaxIdentifierType {
   pan
   other
 }
-
-enum VerificationStatus {
+enum sms_organizationTaxProfiles_verificationStatus {
   pending
   verified
   rejected
 }
-
-enum CurrencySymbolPosition {
+enum sms_organizationSettings_currencySymbolPosition {
   prefix
   suffix
 }
-
-enum TimeFormat {
-  twelveHour @map("12h")
-  twentyFourHour @map("24h")
+enum sms_organizationSettings_timeFormat {
+  h12
+  h24
 }
-
-enum FirstDayOfWeek {
+enum sms_organizationSettings_firstDayOfWeek {
   sunday
   monday
 }
-
-enum DateFormat {
-  DD_MM_YYYY
-  MM_DD_YYYY
-  YYYY_MM_DD
-}
-
-enum HolidayStatus {
+enum sms_holidays_status {
   active
   cancelled
+}
+
+// ---- Module 02: Branches ----
+enum sms_branches_branchType {
+  flagship
+  standard
+  kiosk
+}
+enum sms_branches_status {
+  draft
+  active
+  temporarily_closed
+  permanently_closed
+}
+enum sms_branchManagerAssignments_assignmentType {
+  primary
+  assistant
+}
+
+// ---- Module 03: Roles & Permissions ----
+enum sms_roles_roleType {
+  system
+  custom
+}
+enum sms_roles_status {
+  active
+  inactive
+}
+enum sms_permissions_action {
+  create
+  view
+  edit
+  delete
+  approve
+  export
+  print
+}
+enum sms_rolePermissions_scope {
+  own_branch
+  restricted_branches
+  all_branches
+}
+enum sms_staffPermissionOverrides_overrideType {
+  grant
+  revoke
+}
+
+// ---- Module 04: Users ----
+enum sms_userRoles_none {
+  placeholder
+}
+enum sms_userStatusLogs_status {
+  pending_invite
+  active
+  suspended
+  deactivated
+}
+enum sms_userPasswordResets_deliveryMethod {
+  email
+  sms
+}
+enum sms_userPasswordResets_initiatedBy {
+  self
+  admin
+}
+enum sms_userTwoFactorSettings_method {
+  totp
+  sms
+}
+
+// ---- Module 05: Staff ----
+enum sms_staff_gender {
+  male
+  female
+  other
+  prefer_not_to_say
+}
+enum sms_staff_employmentStatus {
+  active
+  on_leave
+  suspended
+  terminated
+}
+enum sms_staffContacts_maritalStatus {
+  single
+  married
+  other
+  prefer_not_to_say
+}
+enum sms_staffEmploymentHistory_employmentType {
+  full_time
+  part_time
+  contract
+  intern
+}
+enum sms_staffEmploymentHistory_changeReason {
+  initial_hire
+  promotion
+  transfer
+  restructure
+  correction
+}
+enum sms_staffQualifications_recordType {
+  formal_qualification
+  skill_tag
+}
+enum sms_staffDocuments_category {
+  id_proof
+  employment_contract
+  offer_letter
+  background_check
+  other
+}
+enum sms_staffDocuments_status {
+  active
+  expired
+  superseded
+}
+enum sms_staffBranchAssignments_assignmentType {
+  home
+  secondary
+}
+
+// ---- Module 06: Staff Designation & Service Assignment ----
+enum sms_staffDesignations_designationType {
+  stylist
+  beautician
+  makeup_artist
+  hairdresser
+  therapist
+  nail_technician
+  other
+}
+enum sms_staffSkillRatings_proficiencyLevel {
+  beginner
+  intermediate
+  expert
+  master
+}
+enum sms_staffSkillRatings_verificationStatus {
+  self_declared
+  manager_verified
+}
+enum sms_commission_type {
+  percentage
+  fixed
+}
+
+// ---- Module 07: Staff Scheduling ----
+enum sms_shiftTemplates_status {
+  active
+  inactive
+}
+enum sms_staffScheduleOverrides_overrideType {
+  extra_shift
+  shift_change
+  early_leave
+  late_arrival
+  day_off
+}
+enum sms_approvalStatus {
+  not_required
+  pending
+  approved
+  rejected
+}
+enum sms_staffAvailabilityPreferences_preferenceType {
+  preferred
+  avoid
+  unavailable
+}
+enum sms_staffBlockedTime_reasonCategory {
+  training
+  meeting
+  personal
+  other
+}
+
+// ---- Module 08: Attendance ----
+enum sms_checkinMethod {
+  biometric
+  geofenced_app
+  manual
+  admin_entry
+}
+enum sms_staffAttendance_status {
+  present
+  late
+  early_exit
+  half_day
+  absent
+  on_leave
+  holiday
+}
+enum sms_staffAttendanceCorrections_status {
+  pending
+  approved
+  rejected
+}
+enum sms_attendancePeriodApprovals_status {
+  pending
+  approved
+  reopened
+}
+
+// ---- Module 09: Leave ----
+enum sms_leaveTypes_accrualMethod {
+  annual_grant
+  monthly_accrual
+  none
+}
+enum sms_leaveTypes_applicableGender {
+  all
+  female
+  male
+}
+enum sms_staffLeaveRequests_halfDayPeriod {
+  morning
+  afternoon
+}
+enum sms_staffLeaveRequests_status {
+  pending
+  approved
+  rejected
+  cancelled
+}
+enum sms_leaveApprovalLogs_action {
+  submitted
+  approved
+  rejected
+  cancelled
+}
+enum sms_leaveBlackoutPeriods_restrictionType {
+  block_all
+  limit_percentage
+}
+
+// ---- Module 10: Service Categories ----
+enum sms_activeInactive {
+  active
+  inactive
+}
+enum sms_serviceCategoryMedia_mediaType {
+  thumbnail
+  banner
+  custom_icon
+}
+
+// ---- Module 11: Services ----
+enum sms_services_status {
+  active
+  inactive
+  discontinued
+}
+enum sms_serviceMedia_mediaType {
+  thumbnail
+  gallery
+}
+enum sms_serviceRequiredResources_requirementLevel {
+  required
+  preferred
+}
+
+// ---- Module 12: Packages ----
+enum sms_servicePackages_usageLimitType {
+  fixed_count
+  unlimited_within_validity
+}
+enum sms_customerPackagePurchases_status {
+  active
+  expired
+  fully_used
+  cancelled
+}
+
+// ---- Module 13: Add-ons ----
+enum sms_addons_addonType {
+  service_addon
+  product_addon
+}
+
+// ---- Module 14: Resources ----
+enum sms_resourceTypes_category {
+  room
+  chair
+  bed
+  makeup_station
+  equipment
+  other
+}
+enum sms_resources_status {
+  active
+  under_maintenance
+  retired
+}
+enum sms_resourceMaintenanceLogs_maintenanceType {
+  scheduled
+  breakdown
+  inspection
+}
+enum sms_resourceMaintenanceLogs_status {
+  open
+  in_progress
+  completed
+}
+
+// ---- Module 15: Customers ----
+enum sms_customers_registrationSource {
+  walk_in
+  online_portal
+  phone
+  staff_added
+  import
+}
+enum sms_customers_status {
+  active
+  inactive
+  blocked
+  do_not_contact
+}
+enum sms_customerAddresses_addressType {
+  home
+  work
+  other
+}
+enum sms_customerPreferences_communicationChannel {
+  sms
+  email
+  whatsapp
+  push
+  none
+}
+enum sms_customerNotes_visibility {
+  all_staff
+  managers_only
 }

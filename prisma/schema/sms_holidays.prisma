@@ -1,0 +1,23 @@
+model sms_holidays {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organizationId      String              @db.Uuid
+  organization        sms_organizations   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branchId            String?             @db.Uuid
+  branch              sms_branches?       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name                String              @db.VarChar(120)
+  description         String?             @db.VarChar(255)
+  holidayDate         DateTime            @db.Date
+  isRecurringAnnually Boolean             @default(false)
+  status              sms_holidays_status @default(active)
+  createdById         String?             @db.Uuid
+  createdBy           sms_users?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  deletedAt           DateTime?
+
+  @@index([organizationId])
+  @@index([organizationId, branchId])
+  @@index([organizationId, holidayDate])
+  @@index([organizationId, status])
+  @@map("sms_holidays")
+}

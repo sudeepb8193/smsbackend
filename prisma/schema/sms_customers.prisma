@@ -1,0 +1,36 @@
+model sms_customers {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization          sms_organizations @relation(fields: [organizationId], references: [id])
+  customerCode          String   @unique @db.VarChar(30)
+  fullName              String   @db.VarChar(150)
+  phoneCountryCode      String?  @db.VarChar(5)
+  phoneNumber           String?  @db.VarChar(20)
+  phoneVerifiedAt       DateTime?
+  email                 String?  @db.VarChar(150)
+  emailVerifiedAt       DateTime?
+  dateOfBirth           DateTime? @db.Date
+  gender                sms_staff_gender?
+  profilePhotoUrl       String?  @db.VarChar(500)
+  registrationSource    sms_customers_registrationSource @default(walk_in)
+  registeredBranchId String? @db.Uuid
+  registeredBranch      sms_branches? @relation(fields: [registeredBranchId], references: [id])
+  status                sms_customers_status @default(active)
+  createdById String? @db.Uuid
+  createdBy             sms_users? @relation(fields: [createdById], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  customerAddresses         sms_customerAddresses[]
+  customerPreferences       sms_customerPreferences?
+  customerNotes             sms_customerNotes[]
+  customerTags              sms_customerTags[]
+  customerPackagePurchases  sms_customerPackagePurchases[]
+  mergesAsSurvivor          sms_customerMergeLogs[] @relation("MergeSurvivor")
+  mergesAsMerged            sms_customerMergeLogs?  @relation("MergedAway")
+
+  @@index([organizationId, phoneNumber])
+  @@index([organizationId, email])
+  @@map("sms_customers")
+}

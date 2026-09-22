@@ -1,0 +1,16 @@
+model sms_userRoles {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user           sms_users @relation("UserRoleUser", fields: [userId], references: [id])
+  roleId String @db.Uuid
+  role           sms_roles @relation(fields: [roleId], references: [id])
+  isPrimary      Boolean   @default(false)
+  assignedById String? @db.Uuid
+  assignedBy     sms_users? @relation("UserRoleAssignedBy", fields: [assignedById], references: [id])
+  assignedAt     DateTime  @default(now())
+  removedAt      DateTime?
+
+  @@unique([userId, roleId])
+  @@index([userId, isPrimary])
+  @@map("sms_userRoles")
+}

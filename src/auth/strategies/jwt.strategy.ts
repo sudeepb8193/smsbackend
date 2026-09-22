@@ -4,36 +4,47 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'salon_secret_key_change_in_prod',
+      secretOrKey:
+        process.env.JWT_ACCESS_SECRET ||
+        'default_access_secret_key_change_in_env',
     });
   }
 
-  async validate(payload: { sub: string | number; email: string; role: any; organizationId?: number }) {
-    const userId = typeof payload.sub === 'number' ? payload.sub : parseInt(payload.sub, 10);
-    if (isNaN(userId)) {
-      throw new UnauthorizedException('Invalid user token payload.');
+  async validate(payload: {
+    sub: string;
+    organizationId: string;
+    email: string;
+  }) {
+    const userId = String(payload.sub);
+    if (!userId) {
+      throw new UnauthorizedException({
+        code: 'TOKEN_INVALID',
+        message: 'Invalid access token payload',
+      });
     }
 
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.sms_users.findUnique({
       where: { id: userId },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User account no longer exists.');
+    if (!user || user.deletedAt) {
+      throw new UnauthorizedException({
+        code: 'TOKEN_INVALID',
+        message: 'User account no longer exists or is deactivated',
+      });
     }
 
     return {
       id: user.id,
-      uuid: user.uuid,
       email: user.email,
       displayName: user.displayName,
-      role: user.role,
       organizationId: user.organizationId,
+      status: user.status,
     };
   }
 }

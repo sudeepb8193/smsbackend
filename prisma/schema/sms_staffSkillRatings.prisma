@@ -1,0 +1,17 @@
+model sms_staffSkillRatings {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff                 sms_staff @relation(fields: [staffId], references: [id])
+  skillName             String   @db.VarChar(100)
+  proficiencyLevel      sms_staffSkillRatings_proficiencyLevel @default(beginner)
+  verificationStatus    sms_staffSkillRatings_verificationStatus @default(self_declared)
+  verifiedById String? @db.Uuid
+  verifiedBy            sms_users? @relation(fields: [verifiedById], references: [id])
+  verifiedAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([staffId, skillName])
+  @@index([skillName, proficiencyLevel])
+  @@map("sms_staffSkillRatings")
+}

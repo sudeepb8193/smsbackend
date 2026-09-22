@@ -1,0 +1,26 @@
+model sms_servicePackages {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization          sms_organizations @relation(fields: [organizationId], references: [id])
+  name                  String   @db.VarChar(150)
+  slug                  String   @db.VarChar(160)
+  description           String?  @db.Text
+  imageUrl              String?  @db.VarChar(500)
+  packagePriceAmount    Decimal  @db.Decimal(10, 2)
+  validityDays          Int      @default(90) @db.SmallInt
+  usageLimitType        sms_servicePackages_usageLimitType @default(fixed_count)
+  status                sms_activeInactive @default(active)
+  createdById String? @db.Uuid
+  createdBy             sms_users? @relation(fields: [createdById], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  servicePackageItems               sms_servicePackageItems[]
+  servicePackageBranchAvailability  sms_servicePackageBranchAvailability[]
+  customerPackagePurchases          sms_customerPackagePurchases[]
+
+  @@unique([organizationId, slug])
+  @@index([status])
+  @@map("sms_servicePackages")
+}

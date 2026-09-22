@@ -1,0 +1,20 @@
+model sms_branchSettings {
+  id                 String    @id @default(uuid()) @db.Uuid
+  branchId String @db.Uuid   @unique
+  branch                        sms_branches @relation(fields: [branchId], references: [id])
+  onlineBookingEnabled          Boolean  @default(true)
+  maxConcurrentAppointments     Int?     @db.SmallInt
+  minBookingLeadMinutes         Int      @default(0)
+  maxBookingAdvanceDays         Int      @default(90)
+  walkinQueueEnabled            Boolean  @default(true)
+  giftCardsEnabled              Boolean  @default(true)
+  membershipSalesEnabled        Boolean  @default(true)
+  onlinePaymentsEnabled         Boolean  @default(true)
+  cancellationPolicyText        String?  @db.Text
+  noShowFeeAmount               Decimal? @db.Decimal(10, 2)
+  taxRateOverridePercentage     Decimal? @db.Decimal(5, 2)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  @@map("sms_branchSettings")
+}

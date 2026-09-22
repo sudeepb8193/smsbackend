@@ -3,71 +3,74 @@ import {
   IsOptional,
   MinLength,
   MaxLength,
-  Matches,
   IsEnum,
-  IsInt,
-  Min,
-  Max,
+  Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { OrganizationBusinessType, OrganizationStatus } from '../organization.types';
+import { sms_organizations_businessType } from '@prisma/client';
 
 export class UpdateOrganizationDto {
   @IsOptional()
   @IsString()
-  @MinLength(2, { message: 'Business name must be at least 2 characters.' })
-  @MaxLength(150, { message: 'Business name cannot exceed 150 characters.' })
-  @Matches(/^[^<>]*$/, { message: 'Business name cannot contain HTML or script content.' })
+  @MinLength(2, { message: 'Business name must be at least 2 characters' })
+  @MaxLength(150, { message: 'Business name cannot exceed 150 characters' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Matches(/^[^<>]*(?:(?!<script|<html|<\/script|<\/html).)*$/i, {
+    message: 'Business name cannot contain HTML tags or script injection',
+  })
   name?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(150)
+  @MaxLength(150, { message: 'Legal name cannot exceed 150 characters' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Matches(/^[^<>]*(?:(?!<script|<html|<\/script|<\/html).)*$/i, {
+    message: 'Legal name cannot contain HTML tags or script injection',
+  })
   legalName?: string;
 
   @IsOptional()
-  @IsString()
-  @Matches(/^[a-z0-9-]+$/, {
-    message: 'Slug must contain only lowercase letters, numbers, and hyphens.',
+  @IsEnum(sms_organizations_businessType, {
+    message:
+      'Business type must be one of: salon, spa, unisex_salon, barbershop, wellness_center, other',
   })
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
+  businessType?: sms_organizations_businessType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160, { message: 'Slug cannot exceed 160 characters' })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message:
+      'Slug must contain only lowercase letters, numbers, and single hyphens',
+  })
   slug?: string;
 
   @IsOptional()
-  @IsEnum(OrganizationBusinessType, { message: 'Invalid business type specified.' })
-  businessType?: OrganizationBusinessType;
-
-  @IsOptional()
   @IsString()
+  @MaxLength(500)
   logoUrl?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   faviconUrl?: string;
 
   @IsOptional()
   @IsString()
   @Matches(/^#([A-Fa-f0-9]{6})$/, {
-    message: 'Brand primary color must be a valid 6-digit hex color code (e.g., #1E293B).',
+    message:
+      'Primary brand color must be a valid 6-digit hex string (e.g. #8A4A52)',
   })
   brandPrimaryColor?: string;
 
   @IsOptional()
   @IsString()
   @Matches(/^#([A-Fa-f0-9]{6})$/, {
-    message: 'Brand secondary color must be a valid 6-digit hex color code (e.g., #0F172A).',
+    message:
+      'Secondary brand color must be a valid 6-digit hex string (e.g. #F5E6E8)',
   })
   brandSecondaryColor?: string;
-
-  @IsOptional()
-  @IsEnum(OrganizationStatus)
-  status?: OrganizationStatus;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  onboardingStep?: number;
 }

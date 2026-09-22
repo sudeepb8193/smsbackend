@@ -1,0 +1,15 @@
+model sms_customerMergeLogs {
+  id                 String    @id @default(uuid()) @db.Uuid
+  survivingCustomerId String @db.Uuid
+  survivingCustomer      sms_customers @relation("MergeSurvivor", fields: [survivingCustomerId], references: [id])
+  mergedCustomerId String @db.Uuid   @unique
+  mergedCustomer         sms_customers @relation("MergedAway", fields: [mergedCustomerId], references: [id])
+  mergedFieldsSummary    String?  @db.Text
+  reason                 String?  @db.VarChar(255)
+  mergedById String @db.Uuid
+  mergedBy               sms_users @relation(fields: [mergedById], references: [id])
+  mergedAt               DateTime @default(now())
+
+  @@index([survivingCustomerId])
+  @@map("sms_customerMergeLogs")
+}

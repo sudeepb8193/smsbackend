@@ -1,0 +1,15 @@
+model sms_serviceMedia {
+  id                 String    @id @default(uuid()) @db.Uuid
+  serviceId String @db.Uuid
+  service         sms_services @relation(fields: [serviceId], references: [id])
+  mediaType       sms_serviceMedia_mediaType
+  mediaUrl        String   @db.VarChar(500)
+  altText         String?  @db.VarChar(150)
+  displayOrder    Int      @default(0) @db.SmallInt
+  uploadedById String? @db.Uuid
+  uploadedBy      sms_users? @relation(fields: [uploadedById], references: [id])
+  createdAt       DateTime @default(now())
+
+  @@index([serviceId, mediaType, displayOrder])
+  @@map("sms_serviceMedia")
+}

@@ -1,0 +1,14 @@
+model sms_serviceCommissionDefaults {
+  id                 String    @id @default(uuid()) @db.Uuid
+  serviceId String @db.Uuid    @unique
+  service                  sms_services @relation(fields: [serviceId], references: [id])
+  isCommissionEligible     Boolean   @default(true)
+  commissionType           sms_commission_type @default(percentage)
+  commissionValue          Decimal   @default(0.00) @db.Decimal(10, 2)
+  effectiveFrom            DateTime  @db.Date
+  effectiveTo              DateTime? @db.Date
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@map("sms_serviceCommissionDefaults")
+}

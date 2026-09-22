@@ -1,0 +1,26 @@
+model sms_roles {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String? @db.Uuid
+  organization          sms_organizations? @relation(fields: [organizationId], references: [id])
+  name                  String   @db.VarChar(80)
+  slug                  String   @db.VarChar(90)
+  description           String?  @db.VarChar(255)
+  roleType              sms_roles_roleType @default(custom)
+  clonedFromRoleId String? @db.Uuid
+  clonedFrom            sms_roles? @relation("RoleClone", fields: [clonedFromRoleId], references: [id])
+  clonedInto            sms_roles[] @relation("RoleClone")
+  status                sms_roles_status @default(active)
+  createdById String? @db.Uuid
+  createdBy             sms_users? @relation("RoleCreatedBy", fields: [createdById], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  rolePermissions           sms_rolePermissions[]
+  roleBranchRestrictions    sms_roleBranchRestrictions[]
+  userRoles                 sms_userRoles[]
+
+  @@unique([organizationId, slug])
+  @@index([roleType, status])
+  @@map("sms_roles")
+}

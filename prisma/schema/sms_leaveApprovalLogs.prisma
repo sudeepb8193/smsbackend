@@ -1,0 +1,13 @@
+model sms_leaveApprovalLogs {
+  id                 String    @id @default(uuid()) @db.Uuid
+  leaveRequestId String @db.Uuid
+  leaveRequest      sms_staffLeaveRequests @relation(fields: [leaveRequestId], references: [id])
+  action            sms_leaveApprovalLogs_action
+  actorId String @db.Uuid
+  actor             sms_users @relation(fields: [actorId], references: [id])
+  notes             String?  @db.VarChar(255)
+  actionAt          DateTime @default(now())
+
+  @@index([leaveRequestId, actionAt])
+  @@map("sms_leaveApprovalLogs")
+}

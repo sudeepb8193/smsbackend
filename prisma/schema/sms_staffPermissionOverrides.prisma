@@ -1,0 +1,20 @@
+model sms_staffPermissionOverrides {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff          sms_staff @relation(fields: [staffId], references: [id])
+  permissionId String @db.Uuid
+  permission     sms_permissions @relation(fields: [permissionId], references: [id])
+  overrideType   sms_staffPermissionOverrides_overrideType
+  branchId String? @db.Uuid
+  branch         sms_branches? @relation(fields: [branchId], references: [id])
+  reason         String    @db.VarChar(255)
+  expiresAt      DateTime?
+  grantedById String @db.Uuid
+  grantedBy      sms_users @relation(fields: [grantedById], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([staffId, permissionId, branchId])
+  @@index([expiresAt])
+  @@map("sms_staffPermissionOverrides")
+}

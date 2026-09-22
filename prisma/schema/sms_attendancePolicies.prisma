@@ -1,0 +1,19 @@
+model sms_attendancePolicies {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization                sms_organizations @relation(fields: [organizationId], references: [id])
+  branchId String? @db.Uuid
+  branch                      sms_branches? @relation(fields: [branchId], references: [id])
+  lateGraceMinutes             Int     @default(10) @db.SmallInt
+  earlyExitGraceMinutes        Int     @default(10) @db.SmallInt
+  halfDayThresholdMinutes      Int     @default(240) @db.SmallInt
+  overtimeThresholdMinutes     Int     @default(15) @db.SmallInt
+  overtimeRequiresApproval     Boolean @default(true)
+  absentCutoffMinutes          Int     @default(120) @db.SmallInt
+  allowedCheckinMethods        String  @default("biometric,geofenced_app,manual") @db.VarChar(150)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  @@unique([organizationId, branchId])
+  @@map("sms_attendancePolicies")
+}

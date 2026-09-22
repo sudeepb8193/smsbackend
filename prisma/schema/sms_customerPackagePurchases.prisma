@@ -1,0 +1,22 @@
+model sms_customerPackagePurchases {
+  id                 String    @id @default(uuid()) @db.Uuid
+  customerId String @db.Uuid
+  customer          sms_customers @relation(fields: [customerId], references: [id])
+  packageId String @db.Uuid
+  package           sms_servicePackages @relation(fields: [packageId], references: [id])
+  branchId String @db.Uuid
+  branch            sms_branches @relation(fields: [branchId], references: [id])
+  invoiceId String? @db.Uuid  // FK -> sms_invoices.id (Module 28, not yet modeled)
+  pricePaidAmount   Decimal  @db.Decimal(10, 2)
+  purchaseDate      DateTime @db.Date
+  expiryDate        DateTime @db.Date
+  status            sms_customerPackagePurchases_status @default(active)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customerPackageUsageLogs sms_customerPackageUsageLogs[]
+
+  @@index([customerId, status])
+  @@index([expiryDate])
+  @@map("sms_customerPackagePurchases")
+}

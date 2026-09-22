@@ -1,0 +1,31 @@
+model sms_organizationAddresses {
+  id                String       @id @default(uuid()) @db.Uuid
+
+  organizationId    String       @db.Uuid
+  organization      sms_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  addressType       sms_organizationAddresses_addressType
+
+  addressLine1      String       @db.VarChar(255)
+  addressLine2      String?      @db.VarChar(255)
+
+  landmark          String?      @db.VarChar(150)
+
+  city              String       @db.VarChar(100)
+  state             String       @db.VarChar(100)
+  postalCode        String       @db.VarChar(20)
+  country           String       @db.VarChar(100)
+
+  latitude          Decimal?     @db.Decimal(10, 7)
+  longitude         Decimal?     @db.Decimal(10, 7)
+
+  sameAsRegistered  Boolean      @default(false)
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+
+  @@index([organizationId])
+  @@index([organizationId, addressType])
+  @@map("sms_organization_addresses")
+}

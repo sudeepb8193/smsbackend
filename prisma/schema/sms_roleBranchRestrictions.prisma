@@ -1,0 +1,13 @@
+model sms_roleBranchRestrictions {
+  id                 String    @id @default(uuid()) @db.Uuid
+  roleId String @db.Uuid
+  role         sms_roles @relation(fields: [roleId], references: [id])
+  moduleCode   String   @db.VarChar(60)
+  branchId String @db.Uuid
+  branch       sms_branches @relation(fields: [branchId], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@unique([roleId, moduleCode, branchId])
+  @@index([branchId])
+  @@map("sms_roleBranchRestrictions")
+}

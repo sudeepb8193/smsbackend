@@ -1,0 +1,24 @@
+model sms_staffLeaveRequests {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff                     sms_staff @relation(fields: [staffId], references: [id])
+  leaveTypeId String @db.Uuid
+  leaveType                  sms_leaveTypes @relation(fields: [leaveTypeId], references: [id])
+  startDate                  DateTime @db.Date
+  endDate                    DateTime @db.Date
+  isHalfDay                  Boolean  @default(false)
+  halfDayPeriod               sms_staffLeaveRequests_halfDayPeriod?
+  totalDays                  Decimal  @db.Decimal(5, 1)
+  reason                     String   @db.VarChar(255)
+  supportingDocumentUrl      String?  @db.VarChar(500)
+  status                     sms_staffLeaveRequests_status @default(pending)
+  appliedAt                  DateTime @default(now())
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  leaveApprovalLogs sms_leaveApprovalLogs[]
+
+  @@index([staffId, status])
+  @@index([startDate, endDate])
+  @@map("sms_staffLeaveRequests")
+}

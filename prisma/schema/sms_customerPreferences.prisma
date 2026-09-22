@@ -1,0 +1,18 @@
+model sms_customerPreferences {
+  id                 String    @id @default(uuid()) @db.Uuid
+  customerId String @db.Uuid   @unique
+  customer                        sms_customers @relation(fields: [customerId], references: [id])
+  preferredBranchId String? @db.Uuid
+  preferredBranch                 sms_branches? @relation(fields: [preferredBranchId], references: [id])
+  preferredStaffId String? @db.Uuid
+  preferredStaff                  sms_staff? @relation(fields: [preferredStaffId], references: [id])
+  preferredCommunicationChannel   sms_customerPreferences_communicationChannel @default(sms)
+  languagePreference              String   @default("en") @db.VarChar(10)
+  marketingOptIn                  Boolean  @default(true)
+  allergyNotes                    String?  @db.Text
+  patchTestOnFile                 Boolean  @default(false)
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+
+  @@map("sms_customerPreferences")
+}

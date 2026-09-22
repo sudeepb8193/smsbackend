@@ -1,0 +1,17 @@
+model sms_branchManagerAssignments {
+  id                 String    @id @default(uuid()) @db.Uuid
+  branchId String @db.Uuid
+  branch          sms_branches @relation(fields: [branchId], references: [id])
+  staffId String @db.Uuid
+  staff           sms_staff @relation(fields: [staffId], references: [id])
+  assignmentType  sms_branchManagerAssignments_assignmentType @default(primary)
+  startDate       DateTime @db.Date
+  endDate         DateTime? @db.Date
+  changeReason    String?  @db.VarChar(255)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([branchId, assignmentType, endDate])
+  @@index([staffId])
+  @@map("sms_branchManagerAssignments")
+}

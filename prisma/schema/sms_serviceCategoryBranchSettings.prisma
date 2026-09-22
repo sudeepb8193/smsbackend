@@ -1,0 +1,14 @@
+model sms_serviceCategoryBranchSettings {
+  id                 String    @id @default(uuid()) @db.Uuid
+  categoryId String @db.Uuid
+  category              sms_serviceCategories @relation(fields: [categoryId], references: [id])
+  branchId String @db.Uuid
+  branch                sms_branches @relation(fields: [branchId], references: [id])
+  isVisible             Boolean  @default(true)
+  branchDisplayOrder    Int?     @db.SmallInt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([categoryId, branchId])
+  @@map("sms_serviceCategoryBranchSettings")
+}

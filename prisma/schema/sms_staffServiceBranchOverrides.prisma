@@ -1,0 +1,15 @@
+model sms_staffServiceBranchOverrides {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffServiceId String @db.Uuid
+  staffService     sms_staffServices @relation(fields: [staffServiceId], references: [id])
+  branchId String @db.Uuid
+  branch           sms_branches @relation(fields: [branchId], references: [id])
+  isAvailable      Boolean  @default(false)
+  reason           String?  @db.VarChar(255)
+  createdById String? @db.Uuid
+  createdBy        sms_users? @relation(fields: [createdById], references: [id])
+  createdAt        DateTime @default(now())
+
+  @@unique([staffServiceId, branchId])
+  @@map("sms_staffServiceBranchOverrides")
+}

@@ -1,0 +1,13 @@
+model sms_addonServiceMappings {
+  id                 String    @id @default(uuid()) @db.Uuid
+  addonId String @db.Uuid
+  addon           sms_addons @relation(fields: [addonId], references: [id])
+  serviceId String @db.Uuid
+  service         sms_services @relation(fields: [serviceId], references: [id])
+  isRecommended   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@unique([addonId, serviceId])
+  @@index([serviceId, isRecommended])
+  @@map("sms_addonServiceMappings")
+}

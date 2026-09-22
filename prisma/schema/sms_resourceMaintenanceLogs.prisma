@@ -1,0 +1,19 @@
+model sms_resourceMaintenanceLogs {
+  id                 String    @id @default(uuid()) @db.Uuid
+  resourceId String @db.Uuid
+  resource          sms_resources @relation(fields: [resourceId], references: [id])
+  maintenanceType   sms_resourceMaintenanceLogs_maintenanceType
+  reportedIssue     String?   @db.VarChar(255)
+  startDate         DateTime  @db.Date
+  endDate           DateTime? @db.Date
+  costAmount        Decimal?  @db.Decimal(10, 2)
+  vendorName        String?   @db.VarChar(150)
+  status            sms_resourceMaintenanceLogs_status @default(open)
+  createdById String @db.Uuid
+  createdBy         sms_users @relation(fields: [createdById], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([resourceId, status])
+  @@map("sms_resourceMaintenanceLogs")
+}

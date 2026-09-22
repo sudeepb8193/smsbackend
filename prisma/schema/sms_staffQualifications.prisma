@@ -1,0 +1,18 @@
+model sms_staffQualifications {
+  id                 String    @id @default(uuid()) @db.Uuid
+  staffId String @db.Uuid
+  staff                 sms_staff @relation(fields: [staffId], references: [id])
+  recordType            sms_staffQualifications_recordType
+  title                 String    @db.VarChar(150)
+  issuingInstitution    String?   @db.VarChar(150)
+  certificateNumber     String?   @db.VarChar(80)
+  issueDate             DateTime? @db.Date
+  expiryDate            DateTime? @db.Date
+  documentUrl           String?   @db.VarChar(500)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([staffId, recordType])
+  @@index([expiryDate])
+  @@map("sms_staffQualifications")
+}

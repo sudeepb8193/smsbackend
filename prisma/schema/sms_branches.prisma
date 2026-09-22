@@ -1,0 +1,49 @@
+model sms_branches {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization      sms_organizations @relation(fields: [organizationId], references: [id])
+  name              String   @db.VarChar(150)
+  code              String   @unique @db.VarChar(20)
+  branchType        sms_branches_branchType @default(standard)
+  coverImageUrl     String?  @db.VarChar(500)
+  status            sms_branches_status @default(draft)
+  launchedAt        DateTime? @db.Date
+  createdById String? @db.Uuid
+  createdBy         sms_users? @relation("BranchCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  branchAddress             sms_branchAddresses?
+  branchContact             sms_branchContacts?
+  branchManagerAssignments  sms_branchManagerAssignments[]
+  branchScheduleOverrides   sms_branchScheduleOverrides[]
+  branchSettings            sms_branchSettings?
+  businessHours             sms_businessHours[]
+  holidays                  sms_holidays[]
+  userBranchAssignments     sms_userBranchAssignments[]
+  roleBranchRestrictions    sms_roleBranchRestrictions[]
+  staffPermissionOverrides  sms_staffPermissionOverrides[]
+  staff                     sms_staff[]
+  staffBranchAssignments    sms_staffBranchAssignments[]
+  staffServiceBranchOverrides sms_staffServiceBranchOverrides[]
+  shiftTemplates            sms_shiftTemplates[]
+  staffBlockedTime          sms_staffBlockedTime[]
+  attendancePolicies        sms_attendancePolicies[]
+  staffAttendance           sms_staffAttendance[]
+  attendancePeriodApprovals sms_attendancePeriodApprovals[]
+  staffAttendanceMonthlySummary sms_staffAttendanceMonthlySummary[]
+  leaveBlackoutPeriods      sms_leaveBlackoutPeriods[]
+  serviceCategoryBranchSettings sms_serviceCategoryBranchSettings[]
+  serviceBranchPricing      sms_serviceBranchPricing[]
+  serviceBranchAvailability sms_serviceBranchAvailability[]
+  servicePackageBranchAvailability sms_servicePackageBranchAvailability[]
+  addonBranchAvailability   sms_addonBranchAvailability[]
+  resources                 sms_resources[]
+  resourceBlockedTime        sms_resourceBlockedTime[]
+  customers                  sms_customers[]
+  customerPackagePurchases   sms_customerPackagePurchases[]
+  customerPreferencesBranch  sms_customerPreferences[]
+
+  @@map("sms_branches")
+}
