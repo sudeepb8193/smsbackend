@@ -1,0 +1,17 @@
+model sms_auditLogs {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String?            @db.Uuid
+  organization   sms_organizations? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  performedById  String?            @db.Uuid
+  performedBy    sms_users?         @relation("AuditLogPerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
+  action         String             @db.VarChar(100)
+  oldValue       Json?
+  newValue       Json?
+  ipAddress      String?            @db.VarChar(45)
+  createdAt      DateTime           @default(now())
+
+  @@index([organizationId])
+  @@index([performedById])
+  @@index([action])
+  @@map("sms_audit_logs")
+}

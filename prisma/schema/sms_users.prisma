@@ -23,6 +23,8 @@ model sms_users {
 
   // Reverse relations from other modules' "createdBy" / actor style FKs
   organizationsCreated       sms_organizations[]        @relation("OrgCreatedBy")
+  organizationsDeleted       sms_organizations[]        @relation("OrgDeletedBy")
+  auditLogsPerformed         sms_auditLogs[]            @relation("AuditLogPerformedBy")
   branchesCreated            sms_branches[]             @relation("BranchCreatedBy")
   branchScheduleOverrides    sms_branchScheduleOverrides[]
   holidaysCreated            sms_holidays[]

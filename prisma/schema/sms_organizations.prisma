@@ -1,17 +1,24 @@
 model sms_organizations {
   id                    String                          @id @default(uuid()) @db.Uuid
   name                  String                          @db.VarChar(150)
+  code                  String?                         @unique @db.VarChar(50)
   legalName             String?                         @db.VarChar(150)
   slug                  String                          @unique @db.VarChar(160)
   businessType          sms_organizations_businessType   @default(salon)
+  description           String?                         @db.Text
+  email                 String?                         @db.VarChar(150)
+  phone                 String?                         @db.VarChar(30)
+  website               String?                         @db.VarChar(255)
   logoUrl               String?                         @db.VarChar(500)
   faviconUrl            String?                         @db.VarChar(500)
   brandPrimaryColor     String?                         @db.Char(7)
   brandSecondaryColor   String?                         @db.Char(7)
-  status                sms_organizations_status         @default(onboarding)
+  status                sms_organizations_status         @default(active)
   onboardingStep        Int                             @default(0) @db.SmallInt
   createdById           String?                         @db.Uuid
   createdBy             sms_users?                      @relation("OrgCreatedBy", fields: [createdById], references: [id])
+  deletedById           String?                         @db.Uuid
+  deletedBy             sms_users?                      @relation("OrgDeletedBy", fields: [deletedById], references: [id])
   createdAt             DateTime                        @default(now())
   updatedAt             DateTime                        @updatedAt
   deletedAt             DateTime?
@@ -23,6 +30,8 @@ model sms_organizations {
   organizationAddresses sms_organizationAddresses[]
   organizationTaxProfiles sms_organizationTaxProfiles[]
   organizationSettings  sms_organizationSettings?
+  subscription          sms_subscriptions?
+  auditLogs             sms_auditLogs[]
   businessHours         sms_businessHours[]
   holidays              sms_holidays[]
   attendancePolicies    sms_attendancePolicies[]
@@ -38,5 +47,7 @@ model sms_organizations {
   customerTags          sms_customerTags[]
 
   @@index([status])
+  @@index([code])
   @@map("sms_organizations")
 }
+

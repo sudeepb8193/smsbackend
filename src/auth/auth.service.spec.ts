@@ -36,8 +36,8 @@ describe('AuthService', () => {
 
   const mockRole = {
     id: 'role-uuid-100',
-    name: 'Super Admin',
-    slug: 'super-admin',
+    name: 'Owner',
+    slug: 'owner',
   };
 
   beforeEach(async () => {
