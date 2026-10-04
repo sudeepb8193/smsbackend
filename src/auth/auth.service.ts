@@ -95,13 +95,13 @@ export class AuthService {
         },
       });
 
-      // 3. Seed System Super Admin Role for Organization & Assign
-      const superAdminRole = await tx.sms_roles.create({
+      // 3. Seed System Owner Role for Organization & Assign
+      const ownerRole = await tx.sms_roles.create({
         data: {
           organizationId: org.id,
-          name: 'Super Admin',
-          slug: 'super-admin',
-          description: 'Full administrative access to organization',
+          name: 'Owner',
+          slug: 'owner',
+          description: 'Organization Owner with full operational management rights',
           roleType: 'system',
           status: 'active',
         },
@@ -110,7 +110,7 @@ export class AuthService {
       await tx.sms_userRoles.create({
         data: {
           userId: user.id,
-          roleId: superAdminRole.id,
+          roleId: ownerRole.id,
           isPrimary: true,
           assignedAt: new Date(),
         },
@@ -119,12 +119,8 @@ export class AuthService {
       return { org, user };
     });
 
-    const userObj = {
-      id: result.user.id,
-      displayName: result.user.displayName,
-      email: result.user.email,
-      organizationId: result.user.organizationId,
-    };
+    // Helper to build full user payload with role details
+    const userObj = await this.buildUserObject(result.user.id);
 
     const tokens = this.generateTokens({
       sub: userObj.id,
@@ -136,6 +132,47 @@ export class AuthService {
       user: userObj,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+    };
+  }
+
+  /**
+   * Helper to build user object with assigned primary role
+   */
+  private async buildUserObject(userId: string) {
+    const user = await this.prisma.sms_users.findUnique({
+      where: { id: userId },
+      include: {
+        userRolesAssignedToMe: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException({
+        code: 'USER_NOT_FOUND',
+        message: 'User account not found',
+      });
+    }
+
+    const primaryAssigned =
+      user.userRolesAssignedToMe.find((ur) => ur.isPrimary) ||
+      user.userRolesAssignedToMe[0];
+
+    const roleName = primaryAssigned?.role?.name || 'Staff';
+    const roleSlug = primaryAssigned?.role?.slug || 'staff';
+
+    return {
+      id: user.id,
+      displayName: user.displayName,
+      email: user.email,
+      organizationId: user.organizationId,
+      status: user.status,
+      lastLoginAt: user.lastLoginAt,
+      role: roleName,
+      roleSlug: roleSlug,
     };
   }
 
@@ -177,6 +214,30 @@ export class AuthService {
       });
     }
 
+    // Check organization status (deactivated/suspended organizations block user access unless Super Admin)
+    const org = await this.prisma.sms_organizations.findUnique({
+      where: { id: user.organizationId },
+    });
+
+    if (org) {
+      const userRoles = await this.prisma.sms_userRoles.findMany({
+        where: { userId: user.id },
+        include: { role: true },
+      });
+      const isSuperAdmin = userRoles.some(
+        (ur) =>
+          ur.role?.name?.toUpperCase() === 'SUPER ADMIN' ||
+          ur.role?.slug === 'super-admin',
+      );
+
+      if (!isSuperAdmin && (org.status === 'inactive' || org.status === 'suspended')) {
+        throw new UnauthorizedException({
+          code: 'ORGANISATION_INACTIVE',
+          message: `Your organization "${org.name}" is currently ${org.status}. Access is restricted. Please contact Super Admin.`,
+        });
+      }
+    }
+
     // Record last login metadata
     await this.prisma.sms_users.update({
       where: { id: user.id },
@@ -186,12 +247,7 @@ export class AuthService {
       },
     });
 
-    const userObj = {
-      id: user.id,
-      displayName: user.displayName,
-      email: user.email,
-      organizationId: user.organizationId,
-    };
+    const userObj = await this.buildUserObject(user.id);
 
     const tokens = this.generateTokens({
       sub: userObj.id,
@@ -238,12 +294,7 @@ export class AuthService {
       });
     }
 
-    const userObj = {
-      id: user.id,
-      displayName: user.displayName,
-      email: user.email,
-      organizationId: user.organizationId,
-    };
+    const userObj = await this.buildUserObject(user.id);
 
     const tokens = this.generateTokens({
       sub: userObj.id,
@@ -262,25 +313,16 @@ export class AuthService {
    * Get Current Authenticated User Profile (Fresh from DB)
    */
   async getProfile(userId: string) {
-    const user = await this.prisma.sms_users.findUnique({
-      where: { id: userId },
-    });
+    const userObj = await this.buildUserObject(userId);
 
-    if (!user || user.deletedAt) {
+    if (!userObj) {
       throw new UnauthorizedException({
         code: 'TOKEN_INVALID',
         message: 'User profile not found',
       });
     }
 
-    return {
-      id: user.id,
-      displayName: user.displayName,
-      email: user.email,
-      organizationId: user.organizationId,
-      status: user.status,
-      lastLoginAt: user.lastLoginAt,
-    };
+    return userObj;
   }
 
   /**

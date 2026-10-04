@@ -47,7 +47,7 @@ export class UserRoleController {
    * Bulk assign a role to multiple users (Super Admin / Admin)
    */
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'BRANCH_MANAGER', 'branch-manager')
+  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
   @Post('bulk-assign-role')
   @HttpCode(HttpStatus.OK)
   async bulkAssignRoles(
@@ -77,7 +77,7 @@ export class UserRoleController {
    * Assign a role to a user (Super Admin / Branch Manager)
    */
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'BRANCH_MANAGER', 'branch-manager')
+  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
   @Post(':id/roles')
   @HttpCode(HttpStatus.CREATED)
   async assignRole(
@@ -97,7 +97,7 @@ export class UserRoleController {
    * Set a user's assigned role as Primary
    */
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'BRANCH_MANAGER', 'branch-manager')
+  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
   @Patch(':id/roles/:roleId/primary')
   @HttpCode(HttpStatus.OK)
   async setPrimaryRole(
@@ -133,7 +133,7 @@ export class UserRoleController {
    * Remove a role assignment from a user (Blocked if last role)
    */
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'BRANCH_MANAGER', 'branch-manager')
+  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
   @Delete(':id/roles/:roleId')
   @HttpCode(HttpStatus.OK)
   async removeRole(

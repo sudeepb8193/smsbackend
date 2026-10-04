@@ -11,6 +11,7 @@ datasource db {
 
 enum Role {
   SUPER_ADMIN
+  OWNER
   BRANCH_MANAGER
   ACCOUNTANT
   FRONT_DESK

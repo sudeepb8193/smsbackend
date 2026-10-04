@@ -5,15 +5,22 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './database/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { OrganizationModule } from './modules/organization/organization.module';
+import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
+import { OrganisationModule } from './modules/organisation/organisation.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     PrismaModule,
     AuthModule,
-    OrganizationModule,
     UserModule,
+    OrganisationModule,
+    SharedModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
