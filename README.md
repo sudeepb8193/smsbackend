@@ -31,6 +31,38 @@
 $ npm install
 ```
 
+### Organization address autocomplete
+
+The organization setup address search uses the Google Places API (New) through the
+backend. Enable Places API (New) and billing for a Google Cloud project, then set
+its API key in the backend `.env` file:
+
+```env
+GOOGLE_MAPS_API_KEY=your-server-side-api-key
+```
+
+Keep this key server-side; the frontend never receives it. Address search stays
+unavailable until the key is configured, while manual address entry remains
+available.
+
+### Organization contact email verification
+
+Contact verification links require an SMTP account and the frontend origin. Set
+these backend `.env` values before sending verification links:
+
+```env
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+FRONTEND_URL=http://localhost:5173
+```
+
+The link is single-use and expires after 30 minutes. Only a SHA-256 hash of the
+verification token is stored in the database.
+
 ## Compile and run the project
 
 ```bash

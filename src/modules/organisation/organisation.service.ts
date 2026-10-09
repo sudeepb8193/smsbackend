@@ -9,6 +9,7 @@ import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 import { UpdateOrganisationStatusDto } from './dto/update-organisation-status.dto';
 import { QueryOrganisationDto } from './dto/query-organisation.dto';
+import { UpdateOrganisationSetupDto } from './dto/update-organisation-setup.dto';
 import * as bcrypt from 'bcrypt';
 import { sms_organizations_status } from '@prisma/client';
 
@@ -171,6 +172,254 @@ export class OrganisationService {
     return org;
   }
 
+  async checkSlugAvailability(id: string, slug: string) {
+    await this.findOne(id);
+    const normalizedSlug = slug?.trim().toLowerCase() || '';
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug)) {
+      return { available: false, suggestions: [] };
+    }
+    const match = await this.organisationRepository.findBySlug(
+      normalizedSlug,
+      id,
+    );
+    if (!match) return { available: true, suggestions: [] };
+
+    const suggestions: string[] = [];
+    for (let suffix = 2; suggestions.length < 3 && suffix < 100; suffix += 1) {
+      const candidate = `${normalizedSlug.slice(0, 156)}-${suffix}`;
+      if (!(await this.organisationRepository.findBySlug(candidate, id))) {
+        suggestions.push(candidate);
+      }
+    }
+    return { available: false, suggestions };
+  }
+
+  async updateSetup(
+    id: string,
+    dto: UpdateOrganisationSetupDto,
+    performedById?: string,
+    clientIp?: string,
+  ) {
+    const existingOrg = await this.findOne(id);
+    if (/<\/?[a-z][\s\S]*>/i.test(dto.profile.name)) {
+      throw new BadRequestException('Business name cannot contain HTML tags.');
+    }
+
+    const slugMatch = await this.organisationRepository.findBySlug(
+      dto.profile.slug.trim().toLowerCase(),
+      id,
+    );
+    if (
+      dto.profile.slug.trim().toLowerCase() !== existingOrg.slug &&
+      existingOrg.slugChangedAt
+    ) {
+      throw new BadRequestException(
+        'The customer portal URL can only be changed once.',
+      );
+    }
+    if (slugMatch) {
+      throw new ConflictException({
+        code: 'ORGANISATION_SLUG_EXISTS',
+        message: `The portal URL "${dto.profile.slug}" is already in use.`,
+      });
+    }
+
+    const registeredAddress = dto.addresses.find(
+      (address) => address.addressType === 'registered',
+    );
+    if (
+      !registeredAddress?.addressLine1?.trim() ||
+      !registeredAddress.city?.trim() ||
+      !registeredAddress.state?.trim() ||
+      !registeredAddress.postalCode?.trim() ||
+      !registeredAddress.country?.trim()
+    ) {
+      throw new BadRequestException(
+        'Registered address requires a street, city, state, postal code, and country.',
+      );
+    }
+    const postalCode = registeredAddress.postalCode?.trim() || '';
+    if (
+      (registeredAddress.country === 'India' && !/^\d{6}$/.test(postalCode)) ||
+      (registeredAddress.country === 'United States' && !/^\d{5}(?:-\d{4})?$/.test(postalCode))
+    ) {
+      throw new BadRequestException(
+        `Enter a valid postal code for ${registeredAddress.country}.`,
+      );
+    }
+    if (new Set(dto.addresses.map((address) => address.addressType)).size !== 2) {
+      throw new BadRequestException(
+        'Provide one registered office and one billing address entry.',
+      );
+    }
+
+    const seenContactTypes = new Set<string>();
+    for (const contact of dto.contacts) {
+      if (contact.isDefaultPublic && seenContactTypes.has(contact.contactType)) {
+        throw new BadRequestException(
+          `Only one ${contact.contactType} contact can be the public default.`,
+        );
+      }
+      if (contact.isDefaultPublic) seenContactTypes.add(contact.contactType);
+      if (contact.phoneNumber && !/^\+[1-9]\d{6,14}$/.test(contact.phoneNumber.replace(/[\s()-]/g, ''))) {
+        throw new BadRequestException(
+          `Enter a valid E.164 phone number with its country code for the ${contact.contactType} contact.`,
+        );
+      }
+    }
+
+    if (dto.businessHours.length !== 7) {
+      throw new BadRequestException('Business hours must contain all seven weekdays.');
+    }
+    const dayNumbers = new Set<number>();
+    for (const day of dto.businessHours) {
+      if (dayNumbers.has(day.dayOfWeek)) {
+        throw new BadRequestException('Each weekday can only be configured once.');
+      }
+      dayNumbers.add(day.dayOfWeek);
+      if (!day.isOpen) continue;
+      if (!day.openTime || !day.closeTime) {
+        throw new BadRequestException('Open days need both opening and closing times.');
+      }
+      const minuteOfDay = (time: string) => {
+        const [hour, minute] = time.split(':').map(Number);
+        if (hour > 23 || minute > 59) return Number.NaN;
+        return hour * 60 + minute;
+      };
+      const opening = minuteOfDay(day.openTime);
+      let closing = minuteOfDay(day.closeTime);
+      if (day.spansMidnight && closing <= opening) closing += 24 * 60;
+      if (!Number.isFinite(opening) || !Number.isFinite(closing) || closing <= opening) {
+        throw new BadRequestException(
+          'Closing time must be after opening time. Enable spans midnight for overnight hours.',
+        );
+      }
+      const hasBreak = Boolean(day.breakStartTime || day.breakEndTime);
+      if (hasBreak) {
+        if (!day.breakStartTime || !day.breakEndTime) {
+          throw new BadRequestException('Provide both start and end times for a break.');
+        }
+        let breakStart = minuteOfDay(day.breakStartTime);
+        let breakEnd = minuteOfDay(day.breakEndTime);
+        if (day.spansMidnight && breakStart < opening) breakStart += 24 * 60;
+        if (day.spansMidnight && breakEnd < opening) breakEnd += 24 * 60;
+        if (
+          !Number.isFinite(breakStart) ||
+          !Number.isFinite(breakEnd) ||
+          breakStart < opening ||
+          breakEnd > closing ||
+          breakEnd <= breakStart
+        ) {
+          throw new BadRequestException(
+            'Break times must fall within the opening hours.',
+          );
+        }
+      }
+    }
+
+    const activeHolidays = dto.holidays.filter(
+      (holiday) => holiday.status === 'active',
+    );
+    for (let index = 0; index < activeHolidays.length; index += 1) {
+      const holiday = activeHolidays[index];
+      const date = holiday.holidayDate.slice(0, 10);
+      const hasDuplicate = activeHolidays.slice(0, index).some((previous) => {
+        if ((previous.branchId || '') !== (holiday.branchId || '')) return false;
+        const previousDate = previous.holidayDate.slice(0, 10);
+        return previousDate === date ||
+          ((previous.isRecurringAnnually || holiday.isRecurringAnnually) &&
+            previousDate.slice(5) === date.slice(5));
+      });
+      if (hasDuplicate) {
+        throw new BadRequestException(
+          'A holiday already exists for that date and scope.',
+        );
+      }
+    }
+
+    if (dto.taxProfile?.taxIdentifierNumber?.trim()) {
+      const taxId = dto.taxProfile.taxIdentifierNumber.trim().toUpperCase();
+      if (
+        dto.taxProfile.taxIdentifierType === 'gstin' &&
+        !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(taxId)
+      ) {
+        throw new BadRequestException('Enter a valid 15-character GSTIN.');
+      }
+      if (
+        !dto.taxProfile.isTaxExempt &&
+        !dto.taxProfile.documentUrl?.trim()
+      ) {
+        throw new BadRequestException(
+          'Upload a tax registration document before submitting the tax profile for verification.',
+        );
+      }
+    }
+
+    if (dto.profile.status === 'active') {
+      const hasPrimaryContact = dto.contacts.some(
+        (contact) =>
+          contact.contactType === 'primary' &&
+          Boolean(contact.phoneNumber?.trim()) &&
+          Boolean(contact.email?.trim()),
+      );
+      if (!hasPrimaryContact) {
+        throw new BadRequestException(
+          'Add a primary contact with both a phone number and email before activating the organization.',
+        );
+      }
+      if (!dto.settings.currencyCode || !dto.settings.timezone || !dto.settings.languageCode) {
+        throw new BadRequestException(
+          'Currency, timezone, and language are required before activation.',
+        );
+      }
+    }
+
+    const updated = await this.organisationRepository.updateSetup(
+      id,
+      dto,
+      performedById,
+      clientIp,
+    );
+    if (!updated) {
+      throw new NotFoundException({
+        code: 'ORGANISATION_NOT_FOUND',
+        message: 'Organisation not found',
+      });
+    }
+    return {
+      message: 'Organisation setup saved successfully.',
+      organisation: await this.findOne(id),
+    };
+  }
+
+  async updateOwnerSetup(
+    organizationId: string,
+    dto: UpdateOrganisationSetupDto,
+    performedById?: string,
+    clientIp?: string,
+  ) {
+    const existingOrg = await this.findOne(organizationId);
+    return this.updateSetup(
+      organizationId,
+      {
+        ...dto,
+        profile: {
+          ...dto.profile,
+          status: existingOrg.status,
+        },
+        taxProfile: dto.taxProfile
+          ? {
+              ...dto.taxProfile,
+              verificationStatus: undefined,
+              verificationNotes: undefined,
+            }
+          : null,
+      },
+      performedById,
+      clientIp,
+    );
+  }
+
   /**
    * Update Organisation details
    */
@@ -296,6 +545,29 @@ export class OrganisationService {
         code: 'ORGANISATION_NOT_FOUND',
         message: 'Organisation not found',
       });
+    }
+
+    if (dto.status === 'active') {
+      const hasPrimaryContact = existingOrg.organizationContacts?.some(
+        (contact) =>
+          contact.contactType === 'primary' &&
+          Boolean(contact.email?.trim()) &&
+          Boolean(contact.phoneNumber?.trim()),
+      );
+      if (!hasPrimaryContact) {
+        throw new BadRequestException(
+          'Add a primary contact with both a phone number and email before activating the organization.',
+        );
+      }
+      if (
+        !existingOrg.organizationSettings?.currencyCode ||
+        !existingOrg.organizationSettings?.timezone ||
+        !existingOrg.organizationSettings?.languageCode
+      ) {
+        throw new BadRequestException(
+          'Currency, timezone, and language are required before activation.',
+        );
+      }
     }
 
     const updated = await this.organisationRepository.updateStatus(

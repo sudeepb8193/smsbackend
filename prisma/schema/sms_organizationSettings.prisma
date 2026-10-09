@@ -5,6 +5,8 @@ model sms_organizationSettings {
   organization          sms_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   currencyCode          String            @default("INR") @db.Char(3)
+  currencySymbolPosition sms_organizationSettings_currencySymbolPosition @default(prefix)
+  currencyDecimalPlaces Int               @default(2) @db.SmallInt
   timezone              String            @default("Asia/Kolkata") @db.VarChar(100)
 
   dateFormat            String            @default("DD/MM/YYYY") @db.VarChar(30)

@@ -19,6 +19,7 @@ import { StorageFolder } from './enums/storage-folder.enum';
 import { UploadedFileResponse } from './interfaces/uploaded-file.interface';
 import {
   MAX_FILE_SIZE_BYTES,
+  MAX_DOCUMENT_FILE_SIZE_BYTES,
   ALLOWED_IMAGE_MIME_TYPES,
 } from './storage.constants';
 import { generateStorageKey } from './utils/file-name.util';
@@ -67,7 +68,20 @@ export class StorageService {
   /**
    * Validate uploaded file payload against size and MIME type criteria
    */
-  public validateImageFile(file?: Express.Multer.File): void {
+  public validateImageFile(
+    file?: Express.Multer.File,
+    folder: StorageFolder = StorageFolder.GENERAL,
+  ): void {
+    const isOrganizationTaxDocument = folder === StorageFolder.ORGANIZATION_TAX;
+    const allowedMimeTypes = isOrganizationTaxDocument
+      ? ['application/pdf', 'image/jpeg', 'image/png']
+      : folder === StorageFolder.ORGANIZATIONS
+        ? [...ALLOWED_IMAGE_MIME_TYPES, 'image/svg+xml']
+        : ALLOWED_IMAGE_MIME_TYPES;
+    const maxFileSize = isOrganizationTaxDocument
+      ? MAX_DOCUMENT_FILE_SIZE_BYTES
+      : MAX_FILE_SIZE_BYTES;
+
     if (!file || !file.buffer) {
       throw new BadRequestException({
         code: 'MISSING_FILE',
@@ -82,22 +96,22 @@ export class StorageService {
       });
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > maxFileSize) {
       throw new BadRequestException({
         code: 'FILE_TOO_LARGE',
-        message: `File size exceeds the 5 MB maximum limit (Received ${(
+        message: `File size exceeds the ${isOrganizationTaxDocument ? '10' : '5'} MB maximum limit (Received ${(
           file.size /
           (1024 * 1024)
         ).toFixed(2)} MB)`,
       });
     }
 
-    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.mimetype)) {
+    if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException({
         code: 'UNSUPPORTED_MIME_TYPE',
         message: `Unsupported file type: "${
           file.mimetype
-        }". Allowed formats: ${ALLOWED_IMAGE_MIME_TYPES.join(', ')}`,
+        }". Allowed formats: ${allowedMimeTypes.join(', ')}`,
       });
     }
   }
@@ -122,15 +136,13 @@ export class StorageService {
     file: Express.Multer.File,
     folder: StorageFolder = StorageFolder.GENERAL,
   ): Promise<UploadedFileResponse> {
-    // 1. Validate File
-    this.validateImageFile(file);
-
-    // 2. Validate Folder Enum
+    // Validate the folder before applying its file-specific restrictions.
     const validFolder = Object.values(StorageFolder).includes(folder)
       ? folder
       : StorageFolder.GENERAL;
+    this.validateImageFile(file, validFolder);
 
-    // 3. Generate Storage Key
+    // Generate a key after validating the file and folder.
     const { key, fileName } = generateStorageKey(
       validFolder,
       file.originalname,

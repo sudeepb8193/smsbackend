@@ -10,6 +10,8 @@ model sms_organizationContacts {
 
   email               String?      @db.VarChar(255)
   emailVerified       Boolean      @default(false)
+  emailVerificationTokenHash String? @db.VarChar(64)
+  emailVerificationExpiresAt DateTime?
 
   phoneCountryCode    String?      @db.VarChar(10)
   phoneNumber         String?      @db.VarChar(20)
@@ -25,5 +27,6 @@ model sms_organizationContacts {
   @@index([organizationId])
   @@index([organizationId, contactType])
   @@index([organizationId, isDefaultPublic])
+  @@index([emailVerificationTokenHash])
   @@map("sms_organization_contacts")
 }

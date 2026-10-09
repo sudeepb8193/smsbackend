@@ -60,6 +60,13 @@ export class StorageController {
     const fileResult = await this.storageService.getFile(key);
 
     res.setHeader('Content-Type', fileResult.contentType);
+    if (fileResult.contentType === 'image/svg+xml') {
+      res.setHeader(
+        'Content-Security-Policy',
+        "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'",
+      );
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
     if (fileResult.contentLength) {
       res.setHeader('Content-Length', fileResult.contentLength.toString());
     }
