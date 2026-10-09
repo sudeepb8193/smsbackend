@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
 import { StorageService } from './storage.service';
 import { StorageFolder } from './enums/storage-folder.enum';
-import { MAX_FILE_SIZE_BYTES } from './storage.constants';
+import {
+  MAX_DOCUMENT_FILE_SIZE_BYTES,
+  MAX_FILE_SIZE_BYTES,
+} from './storage.constants';
 
 describe('StorageService', () => {
   let service: StorageService;
@@ -79,6 +82,45 @@ describe('StorageService', () => {
       } as Express.Multer.File;
 
       expect(() => service.validateImageFile(mockFile)).not.toThrow();
+    });
+
+    it('should accept SVG logos in the organization folder', () => {
+      const svgFile = {
+        originalname: 'logo.svg',
+        mimetype: 'image/svg+xml',
+        size: 1024,
+        buffer: Buffer.from('<svg />'),
+      } as Express.Multer.File;
+
+      expect(() =>
+        service.validateImageFile(svgFile, StorageFolder.ORGANIZATIONS),
+      ).not.toThrow();
+    });
+
+    it('should accept a PDF tax certificate up to 10MB', () => {
+      const document = {
+        originalname: 'registration.pdf',
+        mimetype: 'application/pdf',
+        size: MAX_DOCUMENT_FILE_SIZE_BYTES,
+        buffer: Buffer.from('pdf'),
+      } as Express.Multer.File;
+
+      expect(() =>
+        service.validateImageFile(document, StorageFolder.ORGANIZATION_TAX),
+      ).not.toThrow();
+    });
+
+    it('should reject tax documents larger than 10MB', () => {
+      const document = {
+        originalname: 'registration.pdf',
+        mimetype: 'application/pdf',
+        size: MAX_DOCUMENT_FILE_SIZE_BYTES + 1,
+        buffer: Buffer.from('pdf'),
+      } as Express.Multer.File;
+
+      expect(() =>
+        service.validateImageFile(document, StorageFolder.ORGANIZATION_TAX),
+      ).toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if file is missing or null', () => {

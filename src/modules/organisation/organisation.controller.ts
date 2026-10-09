@@ -14,10 +14,12 @@ import {
   Req,
 } from '@nestjs/common';
 import { OrganisationService } from './organisation.service';
+import { AddressAutocompleteService } from './address-autocomplete.service';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 import { UpdateOrganisationStatusDto } from './dto/update-organisation-status.dto';
 import { QueryOrganisationDto } from './dto/query-organisation.dto';
+import { UpdateOrganisationSetupDto } from './dto/update-organisation-setup.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -29,7 +31,10 @@ import type { Request } from 'express';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('SUPER_ADMIN', 'super-admin')
 export class OrganisationController {
-  constructor(private readonly organisationService: OrganisationService) {}
+  constructor(
+    private readonly organisationService: OrganisationService,
+    private readonly addressAutocompleteService: AddressAutocompleteService,
+  ) {}
 
   /**
    * 1. List Organisations (Paginated, filtered, searchable)
@@ -39,6 +44,25 @@ export class OrganisationController {
   @HttpCode(HttpStatus.OK)
   async findAll(@Query() query: QueryOrganisationDto) {
     return this.organisationService.findAll(query);
+  }
+
+  @Get('address-suggestions')
+  @HttpCode(HttpStatus.OK)
+  async getAddressSuggestions(
+    @Query('input') input: string,
+    @Query('country') country: string,
+    @Query('sessionToken') sessionToken: string,
+  ) {
+    return this.addressAutocompleteService.getSuggestions(input, country, sessionToken);
+  }
+
+  @Get('address-details')
+  @HttpCode(HttpStatus.OK)
+  async getAddressDetails(
+    @Query('placeId') placeId: string,
+    @Query('sessionToken') sessionToken: string,
+  ) {
+    return this.addressAutocompleteService.getPlaceDetails(placeId, sessionToken);
   }
 
   /**
@@ -64,6 +88,32 @@ export class OrganisationController {
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('organisationId') organisationId: string) {
     return this.organisationService.findOne(organisationId);
+  }
+
+  @Get(':organisationId/slug-availability')
+  @HttpCode(HttpStatus.OK)
+  async checkSlugAvailability(
+    @Param('organisationId') organisationId: string,
+    @Query('slug') slug: string,
+  ) {
+    return this.organisationService.checkSlugAvailability(organisationId, slug);
+  }
+
+  @Put(':organisationId/setup')
+  @HttpCode(HttpStatus.OK)
+  async updateSetup(
+    @Param('organisationId') organisationId: string,
+    @Body() dto: UpdateOrganisationSetupDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    const clientIp = req.ip || req.socket.remoteAddress;
+    return this.organisationService.updateSetup(
+      organisationId,
+      dto,
+      user.id,
+      clientIp,
+    );
   }
 
   /**

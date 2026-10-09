@@ -4,12 +4,15 @@ model sms_organizations {
   code                  String?                         @unique @db.VarChar(50)
   legalName             String?                         @db.VarChar(150)
   slug                  String                          @unique @db.VarChar(160)
+  slugChangedAt         DateTime?
   businessType          sms_organizations_businessType   @default(salon)
   description           String?                         @db.Text
   email                 String?                         @db.VarChar(150)
   phone                 String?                         @db.VarChar(30)
   website               String?                         @db.VarChar(255)
   logoUrl               String?                         @db.VarChar(500)
+  logoSquareUrl         String?                         @db.VarChar(500)
+  logoWideUrl           String?                         @db.VarChar(500)
   faviconUrl            String?                         @db.VarChar(500)
   brandPrimaryColor     String?                         @db.Char(7)
   brandSecondaryColor   String?                         @db.Char(7)
@@ -50,4 +53,3 @@ model sms_organizations {
   @@index([code])
   @@map("sms_organizations")
 }
-

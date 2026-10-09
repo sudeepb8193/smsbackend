@@ -1,5 +1,6 @@
 export enum StorageFolder {
   ORGANIZATIONS = 'organizations',
+  ORGANIZATION_TAX = 'organization-tax',
   BRANCHES = 'branches',
   STAFF = 'staff',
   CUSTOMERS = 'customers',

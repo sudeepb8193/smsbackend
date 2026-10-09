@@ -1,9 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { QueryOrganisationDto } from './dto/query-organisation.dto';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
-import { sms_organizations_status } from '@prisma/client';
+import { UpdateOrganisationSetupDto } from './dto/update-organisation-setup.dto';
+import {
+  sms_organizationAddresses_addressType,
+  sms_organizationContacts_contactType,
+  sms_organizationSettings_currencySymbolPosition,
+  sms_organizationSettings_timeFormat,
+  sms_organizationTaxProfiles_taxIdentifierType,
+  sms_organizations_businessType,
+  sms_organizations_status,
+} from '@prisma/client';
 
 @Injectable()
 export class OrganisationRepository {
@@ -120,9 +129,11 @@ export class OrganisationRepository {
       include: {
         subscription: true,
         organizationSettings: true,
-        organizationAddresses: true,
-        organizationContacts: true,
+        organizationAddresses: { where: { deletedAt: null } },
+        organizationContacts: { where: { deletedAt: null } },
         organizationTaxProfiles: true,
+        businessHours: { where: { branchId: null, deletedAt: null }, orderBy: { dayOfWeek: 'asc' } },
+        holidays: { where: { deletedAt: null }, orderBy: { holidayDate: 'asc' } },
         branches: {
           where: { deletedAt: null },
           select: {
@@ -194,6 +205,316 @@ export class OrganisationRepository {
         code: { equals: code.trim(), mode: 'insensitive' },
         deletedAt: null,
       },
+    });
+  }
+
+  async findBySlug(slug: string, exceptId?: string) {
+    return this.prisma.sms_organizations.findFirst({
+      where: {
+        slug: { equals: slug, mode: 'insensitive' },
+        ...(exceptId ? { id: { not: exceptId } } : {}),
+      },
+      select: { id: true, slug: true },
+    });
+  }
+
+  async updateSetup(
+    id: string,
+    dto: UpdateOrganisationSetupDto,
+    performedById?: string,
+    clientIp?: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.sms_organizations.findUnique({
+        where: { id },
+        select: { name: true, slug: true, status: true },
+      });
+      if (!existing) return null;
+
+      const primaryContact = dto.contacts.find(
+        (contact) => contact.contactType === 'primary',
+      );
+      const org = await tx.sms_organizations.update({
+        where: { id },
+        data: {
+          name: dto.profile.name.trim(),
+          legalName: dto.profile.legalName?.trim() || null,
+          slug: dto.profile.slug.trim().toLowerCase(),
+          ...(dto.profile.slug.trim().toLowerCase() !== existing.slug
+            ? { slugChangedAt: new Date() }
+            : {}),
+          businessType: dto.profile.businessType as sms_organizations_businessType,
+          logoUrl: dto.profile.logoUrl || null,
+          logoSquareUrl: dto.profile.logoSquareUrl || null,
+          logoWideUrl: dto.profile.logoWideUrl || null,
+          faviconUrl: dto.profile.faviconUrl || null,
+          brandPrimaryColor: dto.profile.brandPrimaryColor || null,
+          brandSecondaryColor: dto.profile.brandSecondaryColor || null,
+          status: dto.profile.status as sms_organizations_status,
+          onboardingStep:
+            dto.profile.status === 'active' ? 7 : dto.profile.onboardingStep,
+          ...(primaryContact
+            ? {
+              email: primaryContact.email?.trim().toLowerCase() || null,
+              phone: primaryContact.phoneNumber?.trim() || null,
+            }
+            : {}),
+        },
+      });
+      if (dto.profile.status !== existing.status) {
+        await tx.sms_subscriptions.updateMany({
+          where: { organizationId: id },
+          data: { status: dto.profile.status as sms_organizations_status },
+        });
+      }
+
+      const contacts = dto.contacts;
+      const retainedContactIds = contacts.flatMap((contact) =>
+        contact.id ? [contact.id] : [],
+      );
+      await tx.sms_organizationContacts.updateMany({
+        where: {
+          organizationId: id,
+          deletedAt: null,
+          ...(retainedContactIds.length
+            ? { id: { notIn: retainedContactIds } }
+            : {}),
+        },
+        data: { deletedAt: new Date() },
+      });
+      for (const contact of contacts) {
+        const existingContact = contact.id
+          ? await tx.sms_organizationContacts.findFirst({
+            where: { id: contact.id, organizationId: id },
+            select: { email: true, emailVerified: true },
+          })
+          : null;
+        const normalizedEmail = contact.email?.trim().toLowerCase() || null;
+        const emailChanged =
+          existingContact?.email?.toLowerCase() !== normalizedEmail;
+        const contactData = {
+          contactType: contact.contactType as sms_organizationContacts_contactType,
+          contactName: contact.contactName?.trim() || null,
+          phoneCountryCode: contact.phoneCountryCode?.trim() || null,
+          phoneNumber: contact.phoneNumber?.trim() || null,
+          email: normalizedEmail,
+          emailVerified: existingContact && !emailChanged
+            ? existingContact.emailVerified
+            : false,
+          ...(emailChanged
+            ? {
+              emailVerificationTokenHash: null,
+              emailVerificationExpiresAt: null,
+            }
+            : {}),
+          isDefaultPublic: contact.isDefaultPublic,
+          sameAsPrimary: contact.sameAsPrimary || false,
+        };
+        if (contact.id) {
+          const updatedContact = await tx.sms_organizationContacts.updateMany({
+            where: { id: contact.id, organizationId: id },
+            data: contactData,
+          });
+          if (updatedContact.count !== 1) {
+            throw new BadRequestException(
+              'A selected contact does not belong to this organization.',
+            );
+          }
+        } else {
+          await tx.sms_organizationContacts.create({
+            data: { ...contactData, organizationId: id },
+          });
+        }
+      }
+
+      for (const address of dto.addresses) {
+        const addressType = address.addressType as sms_organizationAddresses_addressType;
+        const values = {
+          addressLine1: address.addressLine1?.trim() || '',
+          addressLine2: address.addressLine2?.trim() || null,
+          landmark: address.landmark?.trim() || null,
+          city: address.city?.trim() || '',
+          state: address.state?.trim() || '',
+          postalCode: address.postalCode?.trim() || '',
+          country: address.country?.trim() || '',
+          latitude: address.latitude ?? null,
+          longitude: address.longitude ?? null,
+          sameAsRegistered: address.sameAsRegistered,
+          deletedAt: null,
+        };
+        const existingAddress = await tx.sms_organizationAddresses.findFirst({
+          where: { organizationId: id, addressType },
+        });
+        if (address.addressType === 'billing' && !values.addressLine1) {
+          if (existingAddress) {
+            await tx.sms_organizationAddresses.update({
+              where: { id: existingAddress.id },
+              data: { deletedAt: new Date() },
+            });
+          }
+          continue;
+        }
+        if (existingAddress) {
+          await tx.sms_organizationAddresses.update({
+            where: { id: existingAddress.id },
+            data: values,
+          });
+        } else {
+          await tx.sms_organizationAddresses.create({
+            data: { ...values, organizationId: id, addressType },
+          });
+        }
+      }
+
+      const taxProfile = dto.taxProfile;
+      const existingTaxProfile = await tx.sms_organizationTaxProfiles.findFirst({
+        where: { organizationId: id },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (taxProfile?.taxIdentifierNumber?.trim()) {
+        const isSameTaxRegistration = Boolean(
+          existingTaxProfile &&
+            existingTaxProfile.taxIdentifierNumber ===
+              taxProfile.taxIdentifierNumber.trim().toUpperCase() &&
+            existingTaxProfile.taxIdentifierType === taxProfile.taxIdentifierType &&
+            existingTaxProfile.registeredBusinessName ===
+              taxProfile.registeredBusinessName.trim() &&
+            (existingTaxProfile.taxRegistrationDate?.toISOString().slice(0, 10) ||
+              null) === (taxProfile.taxRegistrationDate || null) &&
+            existingTaxProfile.isTaxExempt === taxProfile.isTaxExempt &&
+            existingTaxProfile.documentUrl === (taxProfile.documentUrl || null),
+        );
+        const verificationStatus = isSameTaxRegistration
+          ? taxProfile.verificationStatus ||
+            existingTaxProfile?.verificationStatus ||
+            'pending'
+          : 'pending';
+        const taxData = {
+          taxIdentifierType: taxProfile.taxIdentifierType as sms_organizationTaxProfiles_taxIdentifierType,
+          taxIdentifierNumber: taxProfile.taxIdentifierNumber.trim().toUpperCase(),
+          registeredBusinessName: taxProfile.registeredBusinessName.trim(),
+          taxRegistrationDate: taxProfile.taxRegistrationDate
+            ? new Date(taxProfile.taxRegistrationDate)
+            : null,
+          isTaxExempt: taxProfile.isTaxExempt,
+          documentUrl: taxProfile.documentUrl || null,
+          verificationStatus:
+            verificationStatus as 'pending' | 'verified' | 'rejected',
+          verifiedAt:
+            verificationStatus === 'verified'
+              ? existingTaxProfile?.verifiedAt || new Date()
+              : null,
+          verificationNotes: isSameTaxRegistration
+            ? taxProfile.verificationNotes?.trim() || null
+            : null,
+        };
+        if (existingTaxProfile) {
+          await tx.sms_organizationTaxProfiles.update({
+            where: { id: existingTaxProfile.id },
+            data: taxData,
+          });
+        } else {
+          await tx.sms_organizationTaxProfiles.create({
+            data: { ...taxData, organizationId: id },
+          });
+        }
+      } else if (existingTaxProfile) {
+        await tx.sms_organizationTaxProfiles.deleteMany({
+          where: { organizationId: id },
+        });
+      }
+
+      const settingsData = {
+        ...dto.settings,
+        currencySymbolPosition:
+          dto.settings.currencySymbolPosition as sms_organizationSettings_currencySymbolPosition,
+        timeFormat: dto.settings.timeFormat as sms_organizationSettings_timeFormat,
+      };
+      await tx.sms_organizationSettings.upsert({
+        where: { organizationId: id },
+        create: {
+          organizationId: id,
+          ...settingsData,
+        },
+        update: settingsData,
+      });
+
+      for (const hour of dto.businessHours) {
+        const existingHour = await tx.sms_businessHours.findFirst({
+          where: { organizationId: id, branchId: null, dayOfWeek: hour.dayOfWeek },
+        });
+        const values = {
+          isOpen: hour.isOpen,
+          openTime: hour.isOpen ? hour.openTime || null : null,
+          closeTime: hour.isOpen ? hour.closeTime || null : null,
+          breakStartTime: hour.isOpen ? hour.breakStartTime || null : null,
+          breakEndTime: hour.isOpen ? hour.breakEndTime || null : null,
+          spansMidnight: hour.isOpen && hour.spansMidnight,
+          deletedAt: null,
+        };
+        if (existingHour) {
+          await tx.sms_businessHours.update({
+            where: { id: existingHour.id },
+            data: values,
+          });
+        } else {
+          await tx.sms_businessHours.create({
+            data: { ...values, organizationId: id, branchId: null, dayOfWeek: hour.dayOfWeek },
+          });
+        }
+      }
+
+      const retainedHolidayIds = dto.holidays.flatMap((holiday) =>
+        holiday.id ? [holiday.id] : [],
+      );
+      await tx.sms_holidays.updateMany({
+        where: {
+          organizationId: id,
+          deletedAt: null,
+          ...(retainedHolidayIds.length
+            ? { id: { notIn: retainedHolidayIds } }
+            : {}),
+        },
+        data: { status: 'cancelled' },
+      });
+      for (const holiday of dto.holidays) {
+        const holidayData = {
+          branchId: holiday.branchId || null,
+          name: holiday.name.trim(),
+          description: holiday.description?.trim() || null,
+          holidayDate: new Date(`${holiday.holidayDate.slice(0, 10)}T00:00:00.000Z`),
+          isRecurringAnnually: holiday.isRecurringAnnually,
+          status: holiday.status as 'active' | 'cancelled',
+          deletedAt: null,
+        };
+        if (holiday.id) {
+          const updatedHoliday = await tx.sms_holidays.updateMany({
+            where: { id: holiday.id, organizationId: id },
+            data: holidayData,
+          });
+          if (updatedHoliday.count !== 1) {
+            throw new BadRequestException(
+              'A selected holiday does not belong to this organization.',
+            );
+          }
+        } else {
+          await tx.sms_holidays.create({
+            data: { ...holidayData, organizationId: id, createdById: performedById || null },
+          });
+        }
+      }
+
+      await tx.sms_auditLogs.create({
+        data: {
+          organizationId: id,
+          performedById: performedById || null,
+          action: 'ORGANISATION_SETUP_UPDATED',
+          oldValue: { name: existing.name, slug: existing.slug, status: existing.status },
+          newValue: { name: org.name, slug: org.slug, status: org.status },
+          ipAddress: clientIp || null,
+        },
+      });
+      return org;
     });
   }
 
@@ -438,7 +759,10 @@ export class OrganisationRepository {
     return this.prisma.$transaction(async (tx) => {
       const org = await tx.sms_organizations.update({
         where: { id },
-        data: { status },
+        data: {
+          status,
+          ...(status === 'active' ? { onboardingStep: 7 } : {}),
+        },
       });
 
       // Also update subscription status if exists
