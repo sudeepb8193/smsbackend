@@ -13,7 +13,7 @@ import {
   HttpStatus,
   Req,
 } from '@nestjs/common';
-import { OrganisationService } from './organisation.service';
+import { OrganisationService } from './core/organisation.service';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 import { UpdateOrganisationStatusDto } from './dto/update-organisation-status.dto';

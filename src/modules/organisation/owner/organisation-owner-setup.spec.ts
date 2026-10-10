@@ -1,6 +1,6 @@
-import { OrganisationService } from './organisation.service';
-import { OrganisationRepository } from './organisation.repository';
-import { UpdateOrganisationSetupDto } from './dto/update-organisation-setup.dto';
+import { OrganisationService } from '../core/organisation.service';
+import { OrganisationRepository } from '../organisation.repository';
+import { UpdateOrganisationSetupDto } from '../dto/update-organisation-setup.dto';
 
 describe('OrganisationService owner setup permissions', () => {
   const organisationRepository = {

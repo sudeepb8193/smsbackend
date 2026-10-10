@@ -4,7 +4,7 @@ import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { PrismaService } from '../../database/prisma.service';
+import { PrismaService } from '../../../database/prisma.service';
 import { OrganizationContactVerificationService } from './organization-contact-verification.service';
 
 describe('OrganizationContactVerificationService', () => {

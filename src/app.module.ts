@@ -7,7 +7,7 @@ import { PrismaModule } from './database/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
-import { OrganisationModule } from './modules/organisation/organisation.module';
+import { OrganisationModule } from './modules/organisation/core/organisation.module';
 import { SharedModule } from './shared/shared.module';
 
 @Module({
