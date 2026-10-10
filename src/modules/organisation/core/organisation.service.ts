@@ -4,12 +4,12 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { OrganisationRepository } from './organisation.repository';
-import { CreateOrganisationDto } from './dto/create-organisation.dto';
-import { UpdateOrganisationDto } from './dto/update-organisation.dto';
-import { UpdateOrganisationStatusDto } from './dto/update-organisation-status.dto';
-import { QueryOrganisationDto } from './dto/query-organisation.dto';
-import { UpdateOrganisationSetupDto } from './dto/update-organisation-setup.dto';
+import { OrganisationRepository } from '../organisation.repository';
+import { CreateOrganisationDto } from '../dto/create-organisation.dto';
+import { UpdateOrganisationDto } from '../dto/update-organisation.dto';
+import { UpdateOrganisationStatusDto } from '../dto/update-organisation-status.dto';
+import { QueryOrganisationDto } from '../dto/query-organisation.dto';
+import { UpdateOrganisationSetupDto } from '../dto/update-organisation-setup.dto';
 import * as bcrypt from 'bcrypt';
 import { sms_organizations_status } from '@prisma/client';
 

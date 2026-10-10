@@ -11,14 +11,14 @@ import {
   HttpStatus,
   Req,
 } from '@nestjs/common';
-import { OrganisationService } from './organisation.service';
-import { UpdateOrganisationSetupDto } from './dto/update-organisation-setup.dto';
-import { OrganizationContactVerificationService } from './organization-contact-verification.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { OrganisationService } from '../core/organisation.service';
+import { UpdateOrganisationSetupDto } from '../dto/update-organisation-setup.dto';
+import { OrganizationContactVerificationService } from '../organization-contact/organization-contact-verification.service';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 import type { Request } from 'express';
 
 @Controller('owner/organisation')
