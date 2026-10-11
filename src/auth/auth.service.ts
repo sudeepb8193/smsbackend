@@ -142,6 +142,7 @@ export class AuthService {
     const user = await this.prisma.sms_users.findUnique({
       where: { id: userId },
       include: {
+        organization: true,
         userRolesAssignedToMe: {
           include: {
             role: true,
@@ -157,9 +158,10 @@ export class AuthService {
       });
     }
 
+    const userRoles = user.userRolesAssignedToMe || [];
     const primaryAssigned =
-      user.userRolesAssignedToMe.find((ur) => ur.isPrimary) ||
-      user.userRolesAssignedToMe[0];
+      userRoles.find((ur) => ur.isPrimary) ||
+      userRoles[0];
 
     const roleName = primaryAssigned?.role?.name || 'Staff';
     const roleSlug = primaryAssigned?.role?.slug || 'staff';
@@ -169,6 +171,14 @@ export class AuthService {
       displayName: user.displayName,
       email: user.email,
       organizationId: user.organizationId,
+      organization: user.organization ? {
+        id: user.organization.id,
+        name: user.organization.name,
+        logoUrl: user.organization.logoUrl,
+        businessType: user.organization.businessType,
+        slug: user.organization.slug,
+        code: user.organization.code,
+      } : null,
       status: user.status,
       lastLoginAt: user.lastLoginAt,
       role: roleName,

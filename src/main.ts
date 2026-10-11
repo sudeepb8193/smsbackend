@@ -10,6 +10,18 @@ import * as path from 'path';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Support incoming requests both with and without /sms prefix transparently
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    if (
+      !req.url.startsWith(`/${API_PREFIX}/`) &&
+      req.url !== `/${API_PREFIX}` &&
+      !req.url.startsWith('/uploads/')
+    ) {
+      req.url = `/${API_PREFIX}${req.url.startsWith('/') ? '' : '/'}${req.url}`;
+    }
+    next();
+  });
+
   // Set global API prefix from config file
   app.setGlobalPrefix(API_PREFIX);
 

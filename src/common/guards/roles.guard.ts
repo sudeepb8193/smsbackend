@@ -71,6 +71,7 @@ export class RolesGuard implements CanActivate {
       });
     }
 
+    user.roles = allUserRoles;
     return true;
   }
 }
