@@ -9,6 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { OrganisationModule } from './modules/organisation/core/organisation.module';
 import { SharedModule } from './shared/shared.module';
+import { RolePermissionModule } from './modules/role-permission/role-permission.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SharedModule } from './shared/shared.module';
     AuthModule,
     UserModule,
     OrganisationModule,
+    RolePermissionModule,
     SharedModule,
     ThrottlerModule.forRoot([
       {

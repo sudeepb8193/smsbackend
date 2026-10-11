@@ -47,7 +47,11 @@ describe('AuthService', () => {
       },
       sms_users: {
         findFirst: jest.fn(),
-        findUnique: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({
+          ...mockUser,
+          userRolesAssignedToMe: [{ isPrimary: true, role: mockRole }],
+          organization: mockOrg,
+        }),
         update: jest.fn(),
       },
       $transaction: jest.fn(),
@@ -100,7 +104,7 @@ describe('AuthService', () => {
       const result = await service.register(dto);
 
       expect(result).toBeDefined();
-      expect(result.user).toEqual({
+      expect(result.user).toMatchObject({
         id: 'user-uuid-1',
         displayName: 'Sarah Owner',
         email: 'owner@salon.com',
@@ -145,7 +149,7 @@ describe('AuthService', () => {
       const dto = { email: 'owner@salon.com', password: 'Password123' };
       const result = await service.login(dto);
 
-      expect(result.user).toEqual({
+      expect(result.user).toMatchObject({
         id: 'user-uuid-1',
         displayName: 'Sarah Owner',
         email: 'owner@salon.com',
