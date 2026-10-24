@@ -42,6 +42,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     const payload = createErrorResponse(message, status, errorCode, details);
+
+    if (exception instanceof HttpException) {
+      const res = exception.getResponse();
+      if (typeof res === 'object' && res !== null) {
+        const resObj = res as any;
+        Object.keys(resObj).forEach((k) => {
+          if (!['message', 'statusCode', 'error', 'code'].includes(k)) {
+            (payload.error as any)[k] = resObj[k];
+          }
+        });
+      }
+    }
+
     response.status(status).json(payload);
   }
 

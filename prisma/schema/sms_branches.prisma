@@ -45,5 +45,7 @@ model sms_branches {
   customerPackagePurchases   sms_customerPackagePurchases[]
   customerPreferencesBranch  sms_customerPreferences[]
 
+  @@index([organizationId])
+  @@index([status])
   @@map("sms_branches")
 }
