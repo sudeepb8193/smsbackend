@@ -43,3 +43,7 @@ Thumbs.db
 .claude
 .cursor
 .devin
+
+# Database dumps / backups
+*.sql
+*.dump

@@ -10,6 +10,7 @@ import { UserModule } from './modules/user/user.module';
 import { OrganisationModule } from './modules/organisation/core/organisation.module';
 import { SharedModule } from './shared/shared.module';
 import { RolePermissionModule } from './modules/role-permission/role-permission.module';
+import { BranchModule } from './modules/branch/branch.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { RolePermissionModule } from './modules/role-permission/role-permission.
     AuthModule,
     UserModule,
     OrganisationModule,
+    BranchModule,
     RolePermissionModule,
     SharedModule,
     ThrottlerModule.forRoot([
