@@ -8,7 +8,7 @@ import * as express from 'express';
 import * as path from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { logger: false });
 
   // Support incoming requests both with and without /sms prefix transparently
   app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {

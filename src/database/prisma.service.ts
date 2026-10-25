@@ -1,6 +1,6 @@
 import {
   Injectable,
-  Logger,
+  ConsoleLogger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
@@ -11,7 +11,7 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(PrismaService.name);
+  private readonly logger = new ConsoleLogger(PrismaService.name);
 
   async onModuleInit() {
     try {

@@ -47,6 +47,10 @@ describe('AuthService', () => {
       },
       sms_users: {
         findFirst: jest.fn(),
+        findMany: jest.fn().mockImplementation(async () => {
+          const first = await prismaService.sms_users.findFirst();
+          return first ? [first] : [];
+        }),
         findUnique: jest.fn().mockResolvedValue({
           ...mockUser,
           userRolesAssignedToMe: [{ isPrimary: true, role: mockRole }],
