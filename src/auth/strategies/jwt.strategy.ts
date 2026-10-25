@@ -39,6 +39,27 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       });
     }
 
+    if (user.status !== 'active') {
+      const code =
+        user.status === 'deactivated'
+          ? 'ACCOUNT_DEACTIVATED'
+          : user.status === 'suspended'
+          ? 'ACCOUNT_SUSPENDED'
+          : 'ACCOUNT_INACTIVE';
+
+      const message =
+        user.status === 'deactivated'
+          ? 'Your account has been deactivated. Please contact your administrator.'
+          : user.status === 'suspended'
+          ? 'Your account has been suspended. Please contact your administrator.'
+          : 'Your account is inactive. Please contact your administrator.';
+
+      throw new UnauthorizedException({
+        code,
+        message,
+      });
+    }
+
     return {
       id: user.id,
       email: user.email,

@@ -3,28 +3,72 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { AssignRoleDto } from '../dto/assign-role.dto';
 import { BulkAssignRoleDto } from '../dto/bulk-assign-role.dto';
+import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 
 @Injectable()
 export class UserRoleService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * Helper to resolve actor roles
+   */
+  async getActorRoles(actorId?: string): Promise<{
+    isSuperAdmin: boolean;
+    isOwner: boolean;
+    isBranchManager: boolean;
+  }> {
+    if (!actorId) {
+      return { isSuperAdmin: false, isOwner: false, isBranchManager: false };
+    }
+    const userRoles = await this.prisma.sms_userRoles.findMany({
+      where: { userId: actorId, removedAt: null },
+      include: { role: true },
+    });
+    const safeRoles = Array.isArray(userRoles) ? userRoles : [];
+    const slugs = safeRoles
+      .map((ur) => ur.role?.slug?.toLowerCase())
+      .filter((s): s is string => Boolean(s));
+    const names = safeRoles
+      .map((ur) => ur.role?.name?.toUpperCase().replace(/\s+/g, '_'))
+      .filter((n): n is string => Boolean(n));
+    const all = [...slugs, ...names];
+
+    const isSuperAdmin = all.some(
+      (r) => r === 'super-admin' || r === 'SUPER_ADMIN' || r === 'SUPER ADMIN',
+    );
+    const isOwner = all.some((r) => r === 'owner' || r === 'OWNER');
+    const isBranchManager = all.some(
+      (r) => r === 'branch-manager' || r === 'BRANCH_MANAGER' || r === 'BRANCH MANAGER',
+    );
+
+    return { isSuperAdmin, isOwner, isBranchManager };
+  }
+
+  /**
    * Helper to verify user belongs to organization and is active/not deleted
    */
-  private async checkUserInOrg(userId: string, organizationId: string) {
+  private async checkUserInOrg(userId: string, organizationId?: string) {
     const user = await this.prisma.sms_users.findFirst({
       where: {
         id: userId,
-        organizationId,
         deletedAt: null,
       },
     });
 
     if (!user) {
+      throw new NotFoundException({
+        code: 'USER_NOT_FOUND',
+        message: 'User does not exist',
+      });
+    }
+
+    if (organizationId && user.organizationId !== organizationId) {
+      // Check if caller's org matches user's org
       throw new NotFoundException({
         code: 'USER_NOT_FOUND',
         message: 'User does not exist in this organization',
@@ -35,9 +79,11 @@ export class UserRoleService {
 
   /**
    * Get all active roles available for assignment in the organization
+   * - Super Admin role is excluded for non-Super-Admins.
+   * - Branch Managers may only view operational roles (Front Desk, Service Staff).
    */
-  async getAvailableRoles(organizationId: string) {
-    return this.prisma.sms_roles.findMany({
+  async getAvailableRoles(organizationId: string, actor?: AuthenticatedUser) {
+    const roles = await this.prisma.sms_roles.findMany({
       where: {
         OR: [
           { organizationId },
@@ -54,6 +100,30 @@ export class UserRoleService {
         status: true,
       },
       orderBy: { name: 'asc' },
+    });
+
+    if (!actor?.id) {
+      return roles;
+    }
+
+    const { isSuperAdmin, isOwner, isBranchManager } = await this.getActorRoles(actor.id);
+
+    return roles.filter((role) => {
+      const slug = role.slug?.toLowerCase();
+      const isSuperAdminRole =
+        slug === 'super-admin' ||
+        role.name?.toUpperCase() === 'SUPER ADMIN' ||
+        role.name?.toUpperCase() === 'SUPER_ADMIN';
+
+      if (isSuperAdminRole && !isSuperAdmin) {
+        return false;
+      }
+
+      if (isBranchManager && !isSuperAdmin && !isOwner) {
+        return slug === 'front-desk' || slug === 'service-staff';
+      }
+
+      return true;
     });
   }
 
@@ -195,6 +265,15 @@ export class UserRoleService {
   ) {
     await this.checkUserInOrg(userId, organizationId);
 
+    // Verify caller has role management privileges (Super Admin or Owner only)
+    const actorRoles = await this.getActorRoles(assignerId);
+    if (!actorRoles.isSuperAdmin && !actorRoles.isOwner) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Only Super Admin or Owner may assign roles to users',
+      });
+    }
+
     // Verify role exists and belongs to org (or is a global/system role)
     const role = await this.prisma.sms_roles.findFirst({
       where: {
@@ -211,6 +290,20 @@ export class UserRoleService {
       throw new NotFoundException({
         code: 'ROLE_NOT_FOUND',
         message: 'The specified role was not found in this organization',
+      });
+    }
+
+    // Privilege escalation protection: Super Admin role can ONLY be assigned by Super Admin
+    const targetSlug = role.slug?.toLowerCase();
+    const isTargetSuperAdmin =
+      targetSlug === 'super-admin' ||
+      role.name?.toUpperCase() === 'SUPER ADMIN' ||
+      role.name?.toUpperCase() === 'SUPER_ADMIN';
+
+    if (isTargetSuperAdmin && !actorRoles.isSuperAdmin) {
+      throw new ForbiddenException({
+        code: 'PRIVILEGE_ESCALATION_BLOCKED',
+        message: 'Only Super Admin can assign the Super Admin role',
       });
     }
 
@@ -447,6 +540,36 @@ export class UserRoleService {
       });
     }
 
+    // Last active Owner safeguard: prevent removing the Owner role from the last active Owner
+    const isTargetOwner =
+      targetAssignment.role?.slug?.toLowerCase() === 'owner' ||
+      targetAssignment.role?.name?.toUpperCase() === 'OWNER';
+
+    if (isTargetOwner) {
+      const otherActiveOwners = await this.prisma.sms_userRoles.count({
+        where: {
+          role: {
+            OR: [{ slug: 'owner' }, { name: 'Owner' }],
+          },
+          removedAt: null,
+          user: {
+            organizationId,
+            deletedAt: null,
+            status: 'active',
+            id: { not: userId },
+          },
+        },
+      });
+
+      if (otherActiveOwners === 0) {
+        throw new BadRequestException({
+          code: 'LAST_OWNER_PROTECTION',
+          message:
+            'Cannot remove the Owner role from the last active Owner of this organization. Please assign another Owner first.',
+        });
+      }
+    }
+
     return await this.prisma.$transaction(async (tx) => {
       // Soft-remove the role assignment
       await tx.sms_userRoles.update({
@@ -485,6 +608,15 @@ export class UserRoleService {
     assignerId: string,
     dto: BulkAssignRoleDto,
   ) {
+    // Verify caller has role management privileges (Super Admin or Owner only)
+    const actorRoles = await this.getActorRoles(assignerId);
+    if (!actorRoles.isSuperAdmin && !actorRoles.isOwner) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Only Super Admin or Owner may assign roles to users',
+      });
+    }
+
     // Verify target role exists and is active
     const role = await this.prisma.sms_roles.findFirst({
       where: {
@@ -498,6 +630,20 @@ export class UserRoleService {
       throw new NotFoundException({
         code: 'ROLE_NOT_FOUND',
         message: 'Target role not found in organization',
+      });
+    }
+
+    // Privilege escalation protection
+    const targetSlug = role.slug?.toLowerCase();
+    const isTargetSuperAdmin =
+      targetSlug === 'super-admin' ||
+      role.name?.toUpperCase() === 'SUPER ADMIN' ||
+      role.name?.toUpperCase() === 'SUPER_ADMIN';
+
+    if (isTargetSuperAdmin && !actorRoles.isSuperAdmin) {
+      throw new ForbiddenException({
+        code: 'PRIVILEGE_ESCALATION_BLOCKED',
+        message: 'Only Super Admin can assign the Super Admin role',
       });
     }
 

@@ -35,21 +35,24 @@ export class RolesGuard implements CanActivate {
       });
     }
 
-    // Retrieve user assigned roles from DB
+    // Retrieve active user assigned roles from DB
     const userRoles = await this.prisma.sms_userRoles.findMany({
       where: {
         userId: user.id,
+        removedAt: null,
       },
       include: {
         role: true,
       },
     });
 
-    const roleSlugs = userRoles
+    const activeUserRoles = userRoles.filter((ur) => ur.role?.status === 'active');
+
+    const roleSlugs = activeUserRoles
       .map((ur) => ur.role?.slug?.toLowerCase())
       .filter((slug): slug is string => Boolean(slug));
 
-    const roleNames = userRoles
+    const roleNames = activeUserRoles
       .map((ur) => ur.role?.name?.toUpperCase().replace(/\s+/g, '_'))
       .filter((name): name is string => Boolean(name));
 

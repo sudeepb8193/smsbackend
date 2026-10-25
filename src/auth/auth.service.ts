@@ -192,24 +192,55 @@ export class AuthService {
   async login(dto: LoginDto, clientIp?: string) {
     const email = dto.email.trim().toLowerCase();
 
-    // Look up user by email
-    const user = await this.prisma.sms_users.findFirst({
+    // Look up user candidates by email
+    const candidateUsers = await this.prisma.sms_users.findMany({
       where: {
         email: { equals: email, mode: 'insensitive' },
         deletedAt: null,
       },
+      include: {
+        organization: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    // Timing-attack safe generic credential error
-    if (!user || !user.passwordHash) {
+    if (!candidateUsers || candidateUsers.length === 0) {
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
         message: 'Invalid email or password',
       });
     }
 
-    const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordMatch) {
+    // Find matching candidate, prioritizing active and non-deleted organizations
+    let user: (typeof candidateUsers)[0] | null = null;
+    let passwordMatchedUser: (typeof candidateUsers)[0] | null = null;
+
+    for (const candidate of candidateUsers) {
+      if (!candidate.passwordHash) continue;
+      const isMatch = await bcrypt.compare(dto.password, candidate.passwordHash);
+      if (isMatch) {
+        if (!passwordMatchedUser) {
+          passwordMatchedUser = candidate;
+        }
+        if (
+          candidate.organization &&
+          !candidate.organization.deletedAt &&
+          candidate.organization.status === 'active'
+        ) {
+          user = candidate;
+          break;
+        }
+      }
+    }
+
+    if (!user) {
+      user = passwordMatchedUser;
+    }
+
+    // Timing-attack safe generic credential error
+    if (!user) {
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
         message: 'Invalid email or password',
@@ -217,6 +248,13 @@ export class AuthService {
     }
 
     // Check account status
+    if (user.status === 'pending_invite') {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_PENDING_INVITE',
+        message: 'Your account has not been activated yet. Please follow the link in your invitation to set your password.',
+      });
+    }
+
     if (user.status !== 'active') {
       throw new UnauthorizedException({
         code: 'ACCOUNT_INACTIVE',
@@ -330,6 +368,23 @@ export class AuthService {
         code: 'TOKEN_INVALID',
         message: 'User profile not found',
       });
+    }
+
+    if (userObj.status !== 'active') {
+      const code =
+        userObj.status === 'deactivated'
+          ? 'ACCOUNT_DEACTIVATED'
+          : userObj.status === 'suspended'
+          ? 'ACCOUNT_SUSPENDED'
+          : 'ACCOUNT_INACTIVE';
+      const message =
+        userObj.status === 'deactivated'
+          ? 'Your account has been deactivated. Please contact your administrator.'
+          : userObj.status === 'suspended'
+          ? 'Your account has been suspended. Please contact your administrator.'
+          : 'Your account is inactive. Please contact your administrator.';
+
+      throw new UnauthorizedException({ code, message });
     }
 
     return userObj;
