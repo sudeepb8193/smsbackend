@@ -82,48 +82,123 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('should create an organization, user, and role in a transaction and return tokens', async () => {
-      prismaService.sms_organizations.findUnique.mockResolvedValue(null);
+    it('should create customer user and assign Customer role, returning tokens', async () => {
+      const mockCustomerRole = {
+        id: 'role-customer-1',
+        name: 'Customer',
+        slug: 'customer',
+      };
+      const mockCustomerUser = {
+        id: 'user-uuid-1',
+        displayName: 'Jane Customer',
+        email: 'customer@gmail.com',
+        organizationId: 'org-uuid-10',
+      };
+
+      prismaService.sms_organizations.findFirst = jest.fn().mockResolvedValue(mockOrg);
 
       prismaService.$transaction.mockImplementation((callback: any) => {
         const tx = {
-          sms_organizations: { create: jest.fn().mockResolvedValue(mockOrg) },
+          sms_organizations: {
+            findFirst: jest.fn().mockResolvedValue(mockOrg),
+            create: jest.fn().mockResolvedValue(mockOrg),
+          },
           sms_users: {
             findFirst: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockResolvedValue(mockUser),
+            create: jest.fn().mockResolvedValue(mockCustomerUser),
           },
-          sms_roles: { create: jest.fn().mockResolvedValue(mockRole) },
+          sms_roles: {
+            findFirst: jest.fn().mockResolvedValue(mockCustomerRole),
+            create: jest.fn().mockResolvedValue(mockCustomerRole),
+          },
           sms_userRoles: { create: jest.fn().mockResolvedValue({}) },
+          sms_customers: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({}),
+          },
         };
         return callback(tx);
       });
 
       const dto = {
-        organizationName: 'Elegance Salon',
-        fullName: 'Sarah Owner',
-        email: 'owner@salon.com',
+        fullName: 'Jane Customer',
+        email: 'customer@gmail.com',
         password: 'Password123',
+        phoneNumber: '555-123-4567',
       };
 
       const result = await service.register(dto);
 
       expect(result).toBeDefined();
-      expect(result.user).toMatchObject({
-        id: 'user-uuid-1',
-        displayName: 'Sarah Owner',
-        email: 'owner@salon.com',
-        organizationId: 'org-uuid-10',
-      });
       expect(result.accessToken).toBe('mocked_jwt_token');
       expect(result.refreshToken).toBe('mocked_jwt_token');
     });
 
-    it('should throw ConflictException if user with email already exists in new transaction', async () => {
-      prismaService.sms_organizations.findUnique.mockResolvedValue(null);
+    it('should ignore any client-supplied role or admin privileges and always enforce Customer role', async () => {
+      const mockCustomerRole = {
+        id: 'role-customer-1',
+        name: 'Customer',
+        slug: 'customer',
+      };
+      const userRolesCreated: any[] = [];
+
+      prismaService.sms_organizations.findFirst = jest.fn().mockResolvedValue(mockOrg);
 
       prismaService.$transaction.mockImplementation((callback: any) => {
         const tx = {
-          sms_organizations: { create: jest.fn().mockResolvedValue(mockOrg) },
+          sms_organizations: {
+            findFirst: jest.fn().mockResolvedValue(mockOrg),
+            create: jest.fn().mockResolvedValue(mockOrg),
+          },
+          sms_users: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockImplementation((args: any) => ({
+              ...args.data,
+              id: 'user-uuid-customer',
+            })),
+          },
+          sms_roles: {
+            findFirst: jest.fn().mockResolvedValue(mockCustomerRole),
+          },
+          sms_userRoles: {
+            create: jest.fn().mockImplementation((args: any) => {
+              userRolesCreated.push(args.data);
+              return args.data;
+            }),
+          },
+          sms_customers: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({}),
+          },
+        };
+        return callback(tx);
+      });
+
+      // Malicious attempt to register as Owner or Admin
+      const maliciousDto: any = {
+        fullName: 'Attacker Attempting Owner',
+        email: 'attacker@test.com',
+        password: 'Password123',
+        role: 'OWNER',
+        roles: ['SUPER_ADMIN', 'OWNER'],
+        isAdmin: true,
+        isOwner: true,
+      };
+
+      await service.register(maliciousDto);
+
+      // Verify that user role created was ONLY the Customer role
+      expect(userRolesCreated).toHaveLength(1);
+      expect(userRolesCreated[0].roleId).toBe('role-customer-1');
+    });
+
+    it('should throw ConflictException if user with email already exists in new transaction', async () => {
+      prismaService.$transaction.mockImplementation((callback: any) => {
+        const tx = {
+          sms_organizations: {
+            findFirst: jest.fn().mockResolvedValue(mockOrg),
+            create: jest.fn().mockResolvedValue(mockOrg),
+          },
           sms_users: {
             findFirst: jest.fn().mockResolvedValue(mockUser),
           },
@@ -132,9 +207,8 @@ describe('AuthService', () => {
       });
 
       const dto = {
-        organizationName: 'Elegance Salon',
-        fullName: 'Sarah Owner',
-        email: 'owner@salon.com',
+        fullName: 'Jane Customer',
+        email: 'customer@gmail.com',
         password: 'Password123',
       };
 
