@@ -21,8 +21,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * Register a new Salon Owner + Organization
+   * Public Customer Registration (Rate-limited to 5 attempts per minute per IP)
    */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto) {

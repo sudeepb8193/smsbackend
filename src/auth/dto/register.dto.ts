@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Length,
   Matches,
@@ -8,13 +9,6 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  @IsNotEmpty({ message: 'Organization Name is required' })
-  @IsString({ message: 'Organization Name must be a string' })
-  @Length(2, 150, {
-    message: 'Organization Name must be between 2 and 150 characters',
-  })
-  organizationName: string;
-
   @IsNotEmpty({ message: 'Full Name is required' })
   @IsString({ message: 'Full Name must be a string' })
   @Length(2, 120, { message: 'Full Name must be between 2 and 120 characters' })
@@ -30,4 +24,17 @@ export class RegisterDto {
     message: 'Password must contain at least one letter and one number',
   })
   password: string;
+
+  @IsOptional()
+  @IsString({ message: 'Phone number must be a string' })
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Phone country code must be a string' })
+  phoneCountryCode?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Organization Name must be a string' })
+  organizationName?: string;
 }
+

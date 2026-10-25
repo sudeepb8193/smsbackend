@@ -46,75 +46,129 @@ export class AuthService {
   }
 
   /**
-   * Register a new Salon Owner (Atomic Organization + User Creation)
+   * Public Customer Registration (Strictly assigns CUSTOMER role on server)
    */
   async register(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
-
-    // Generate unique organization slug
-    const slug = await this.generateUniqueSlug(dto.organizationName);
 
     // Hash password with 12 salt rounds
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
     // Execute atomic creation in a single Prisma transaction
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1. Create Organization
-      const org = await tx.sms_organizations.create({
-        data: {
-          name: dto.organizationName.trim(),
-          slug,
-          status: 'onboarding',
-        },
+      // 1. Resolve active salon organization to associate the customer with
+      let org = await tx.sms_organizations.findFirst({
+        where: { status: 'active', deletedAt: null },
+        orderBy: { createdAt: 'asc' },
       });
 
-      // Check email uniqueness within new org (trivially true, but handle duplicate email globally gracefully if needed)
-      const existingEmail = await tx.sms_users.findFirst({
+      if (!org) {
+        org = await tx.sms_organizations.findFirst({
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'asc' },
+        });
+      }
+
+      if (!org) {
+        const slug = await this.generateUniqueSlug(
+          dto.organizationName || 'SalonFlow Pro',
+        );
+        org = await tx.sms_organizations.create({
+          data: {
+            name: dto.organizationName?.trim() || 'SalonFlow Pro',
+            slug,
+            status: 'active',
+          },
+        });
+      }
+
+      // 2. Global / Organization email uniqueness check
+      const existingUser = await tx.sms_users.findFirst({
         where: {
           organizationId: org.id,
           email: { equals: email, mode: 'insensitive' },
+          deletedAt: null,
         },
       });
 
-      if (existingEmail) {
+      if (existingUser) {
         throw new ConflictException({
           code: 'EMAIL_ALREADY_REGISTERED',
           message: 'An account with this email address already exists',
         });
       }
 
-      // 2. Create Super Admin User
+      // 3. Ensure Customer system role exists (Server enforced - cannot be overridden)
+      let customerRole = await tx.sms_roles.findFirst({
+        where: {
+          slug: 'customer',
+          deletedAt: null,
+        },
+      });
+
+      if (!customerRole) {
+        customerRole = await tx.sms_roles.create({
+          data: {
+            organizationId: null,
+            name: 'Customer',
+            slug: 'customer',
+            description:
+              'Self-service customer portal account for booking appointments, viewing service menus, and receipts.',
+            roleType: 'system',
+            status: 'active',
+          },
+        });
+      }
+
+      // 4. Create customer user account
       const user = await tx.sms_users.create({
         data: {
           organizationId: org.id,
           displayName: dto.fullName.trim(),
           email,
+          phoneNumber: dto.phoneNumber?.trim() || null,
+          phoneCountryCode: dto.phoneCountryCode?.trim() || '+1',
           passwordHash,
           status: 'active',
           inviteAcceptedAt: new Date(),
         },
       });
 
-      // 3. Seed System Owner Role for Organization & Assign
-      const ownerRole = await tx.sms_roles.create({
-        data: {
-          organizationId: org.id,
-          name: 'Owner',
-          slug: 'owner',
-          description: 'Organization Owner with full operational management rights',
-          roleType: 'system',
-          status: 'active',
-        },
-      });
-
+      // 5. Assign Customer role (Server enforced)
       await tx.sms_userRoles.create({
         data: {
           userId: user.id,
-          roleId: ownerRole.id,
+          roleId: customerRole.id,
           isPrimary: true,
           assignedAt: new Date(),
         },
       });
+
+      // 6. Synchronize CRM customer profile in sms_customers if not already present
+      const existingCustomer = await tx.sms_customers.findFirst({
+        where: {
+          organizationId: org.id,
+          email: { equals: email, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      });
+
+      if (!existingCustomer) {
+        const customerCode = `CUST-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+        await tx.sms_customers.create({
+          data: {
+            organizationId: org.id,
+            customerCode,
+            fullName: dto.fullName.trim(),
+            email,
+            phoneNumber: dto.phoneNumber?.trim() || null,
+            phoneCountryCode: dto.phoneCountryCode?.trim() || '+1',
+            registrationSource: 'online_portal',
+            status: 'active',
+            createdById: user.id,
+          },
+        });
+      }
 
       return { org, user };
     });
