@@ -6,6 +6,8 @@ import {
   MinLength,
   Matches,
   IsDateString,
+  IsUUID,
+  ValidateIf,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { sms_branches_branchType, sms_branches_status } from '@prisma/client';
@@ -49,11 +51,23 @@ export class UpdateBranchDto {
   status?: sms_branches_status;
 
   @IsOptional()
+  @Transform(({ value }) => (value === '' || value === null ? null : value))
+  @ValidateIf((o) => o.launchedAt !== null && o.launchedAt !== undefined && o.launchedAt !== '')
   @IsDateString(
     {},
     { message: 'Launched at must be a valid ISO date string (YYYY-MM-DD)' },
   )
   launchedAt?: string | null;
+
+  @IsOptional()
+  @IsUUID('all', { message: 'Organization ID must be a valid UUID' })
+  organizationId?: string;
+
+  @IsOptional()
+  @IsUUID('all', {
+    message: 'Copy settings source branch ID must be a valid UUID',
+  })
+  copySettingsFromBranchId?: string;
 
   @IsOptional()
   address?: {
@@ -85,3 +99,4 @@ export class UpdateBranchDto {
     closeTime?: string;
   }>;
 }
+

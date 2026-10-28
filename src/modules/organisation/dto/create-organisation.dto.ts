@@ -24,6 +24,11 @@ export enum OrganisationStatusEnum {
   SUSPENDED = 'suspended',
 }
 
+export enum OperatingModeEnum {
+  INDIVIDUAL_WEBSITE = 'INDIVIDUAL_WEBSITE',
+  CENTRAL_MARKETPLACE = 'CENTRAL_MARKETPLACE',
+}
+
 export class CreateOrganisationDto {
   @IsString()
   @IsNotEmpty({ message: 'Organisation Name is required' })
@@ -36,6 +41,10 @@ export class CreateOrganisationDto {
   @IsEnum(BusinessTypeEnum, { message: 'Invalid Business Type' })
   @IsNotEmpty({ message: 'Business Type is required' })
   businessType: BusinessTypeEnum;
+
+  @IsEnum(OperatingModeEnum, { message: 'Invalid Operating Mode' })
+  @IsNotEmpty({ message: 'Operating Mode is required' })
+  operatingMode: OperatingModeEnum;
 
   @IsString()
   @IsOptional()

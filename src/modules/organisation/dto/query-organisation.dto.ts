@@ -15,6 +15,10 @@ export class QueryOrganisationDto {
   plan?: string;
 
   @IsOptional()
+  @IsString()
+  operatingMode?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

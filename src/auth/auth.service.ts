@@ -232,6 +232,8 @@ export class AuthService {
         businessType: user.organization.businessType,
         slug: user.organization.slug,
         code: user.organization.code,
+        operatingMode: user.organization.operatingMode,
+        marketplaceListingStatus: user.organization.marketplaceListingStatus,
       } : null,
       status: user.status,
       lastLoginAt: user.lastLoginAt,

@@ -17,6 +17,8 @@ model sms_organizations {
   brandPrimaryColor     String?                         @db.Char(7)
   brandSecondaryColor   String?                         @db.Char(7)
   status                sms_organizations_status         @default(active)
+  operatingMode         sms_organizations_operatingMode  @default(INDIVIDUAL_WEBSITE)
+  marketplaceListingStatus sms_organizations_marketplaceListingStatus @default(draft)
   onboardingStep        Int                             @default(0) @db.SmallInt
   createdById           String?                         @db.Uuid
   createdBy             sms_users?                      @relation("OrgCreatedBy", fields: [createdById], references: [id])
@@ -51,5 +53,7 @@ model sms_organizations {
 
   @@index([status])
   @@index([code])
+  @@index([operatingMode])
+  @@index([marketplaceListingStatus])
   @@map("sms_organizations")
 }

@@ -9,6 +9,7 @@ import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { QueryRolesDto } from '../dto/query-roles.dto';
 import { sms_roles_roleType, sms_roles_status } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class RoleService {
@@ -246,57 +247,88 @@ export class RoleService {
       }
     }
 
-    return await this.prisma.$transaction(async (tx) => {
-      // 1. Create the new custom role
-      const newRole = await tx.sms_roles.create({
-        data: {
-          organizationId: targetOrgId,
-          name: dto.name,
-          slug,
-          description: dto.description || null,
-          roleType: sms_roles_roleType.custom,
-          clonedFromRoleId: dto.clonedFromRoleId || null,
-          status: sms_roles_status.active,
-          createdById: creatorId,
-        },
-      });
+    return await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Create the new custom role
+        const newRole = await tx.sms_roles.create({
+          data: {
+            organizationId: targetOrgId,
+            name: dto.name,
+            slug,
+            description: dto.description || null,
+            roleType: sms_roles_roleType.custom,
+            clonedFromRoleId: dto.clonedFromRoleId || null,
+            status: sms_roles_status.active,
+            createdById: creatorId,
+          },
+        });
 
-      // 2. If cloning, copy permissions and branch restrictions
-      if (clonedSourceRole && clonedSourceRole.rolePermissions?.length > 0) {
-        // Copy role permissions
-        for (const rp of clonedSourceRole.rolePermissions) {
-          await tx.sms_rolePermissions.create({
-            data: {
-              roleId: newRole.id,
-              permissionId: rp.permissionId,
-              scope: rp.scope,
-              grantedById: creatorId,
-            },
-          });
-        }
+        // 2. If cloning, copy permissions and branch restrictions
+        if (clonedSourceRole && clonedSourceRole.rolePermissions?.length > 0) {
+          const clonedPermissionsData = clonedSourceRole.rolePermissions.map((rp) => ({
+            id: randomUUID(),
+            roleId: newRole.id,
+            permissionId: rp.permissionId,
+            scope: rp.scope,
+            grantedById: creatorId,
+            updatedAt: new Date(),
+          }));
 
-        // Copy role branch restrictions (only for branches belonging to targetOrgId)
-        if (clonedSourceRole.roleBranchRestrictions?.length > 0) {
-          for (const rbr of clonedSourceRole.roleBranchRestrictions) {
-            // Verify branch belongs to targetOrgId
-            const branchValid = await tx.sms_branches.findFirst({
-              where: { id: rbr.branchId, organizationId: targetOrgId, deletedAt: null },
+          if (typeof tx.sms_rolePermissions.createMany === 'function') {
+            await tx.sms_rolePermissions.createMany({
+              data: clonedPermissionsData,
             });
-            if (branchValid) {
-              await tx.sms_roleBranchRestrictions.create({
-                data: {
-                  roleId: newRole.id,
-                  moduleCode: rbr.moduleCode,
-                  branchId: rbr.branchId,
-                },
-              });
+          } else {
+            for (const rp of clonedPermissionsData) {
+              await tx.sms_rolePermissions.create({ data: rp });
+            }
+          }
+
+          // Copy role branch restrictions (only for branches belonging to targetOrgId)
+          if (clonedSourceRole.roleBranchRestrictions?.length > 0) {
+            const validBranchIds = new Set(
+              (
+                await tx.sms_branches.findMany({
+                  where: {
+                    id: { in: clonedSourceRole.roleBranchRestrictions.map((rbr) => rbr.branchId) },
+                    organizationId: targetOrgId,
+                    deletedAt: null,
+                  },
+                  select: { id: true },
+                })
+              ).map((b) => b.id),
+            );
+
+            const clonedRestrictionsData = clonedSourceRole.roleBranchRestrictions
+              .filter((rbr) => validBranchIds.has(rbr.branchId))
+              .map((rbr) => ({
+                id: randomUUID(),
+                roleId: newRole.id,
+                moduleCode: rbr.moduleCode,
+                branchId: rbr.branchId,
+              }));
+
+            if (clonedRestrictionsData.length > 0) {
+              if (typeof tx.sms_roleBranchRestrictions.createMany === 'function') {
+                await tx.sms_roleBranchRestrictions.createMany({
+                  data: clonedRestrictionsData,
+                });
+              } else {
+                for (const rbr of clonedRestrictionsData) {
+                  await tx.sms_roleBranchRestrictions.create({ data: rbr });
+                }
+              }
             }
           }
         }
-      }
 
-      return newRole;
-    });
+        return newRole;
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000,
+      },
+    );
   }
 
   /**
