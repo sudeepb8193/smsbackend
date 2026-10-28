@@ -26,6 +26,7 @@ export class OrganisationRepository {
       search,
       status,
       plan,
+      operatingMode,
       page = 1,
       limit = 10,
       sortBy = 'createdAt',
@@ -40,6 +41,10 @@ export class OrganisationRepository {
 
     if (status && status !== 'all') {
       whereClause.status = status as sms_organizations_status;
+    }
+
+    if (operatingMode && operatingMode !== 'all') {
+      whereClause.operatingMode = operatingMode as any;
     }
 
     if (plan && plan !== 'all') {
@@ -824,5 +829,19 @@ export class OrganisationRepository {
 
       return org;
     });
+  }
+
+  /**
+   * Record standalone audit log entry
+   */
+  async createAuditLog(data: {
+    organizationId?: string | null;
+    performedById?: string | null;
+    action: string;
+    oldValue?: any;
+    newValue?: any;
+    ipAddress?: string | null;
+  }) {
+    return this.prisma.sms_auditLogs.create({ data });
   }
 }

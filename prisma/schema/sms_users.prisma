@@ -75,6 +75,7 @@ model sms_users {
   customerMergesPerformed    sms_customerMergeLogs[]
   packageUsageLogsRecorded   sms_customerPackageUsageLogs[]
   userPasswordResets         sms_userPasswordResets[]
+  platformSettingsUpdated    sms_platformSettings[]     @relation("PlatformSettingsUpdatedBy")
 
   @@index([organizationId, email])
   @@index([organizationId, phoneNumber])

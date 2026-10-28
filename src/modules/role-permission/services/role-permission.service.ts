@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../../database/prisma.service';
 import { AssignRolePermissionsDto } from '../dto/assign-role-permissions.dto';
 import { sms_rolePermissions_scope } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class RolePermissionService {
@@ -234,63 +235,108 @@ export class RolePermissionService {
     }
 
     // 5. Execute Atomically in Transaction
-    return await this.prisma.$transaction(async (tx) => {
-      // Delete existing role permissions
-      await tx.sms_rolePermissions.deleteMany({
-        where: { roleId },
-      });
+    return await this.prisma.$transaction(
+      async (tx) => {
+        // Delete existing role permissions
+        await tx.sms_rolePermissions.deleteMany({
+          where: { roleId },
+        });
 
-      // Delete existing role branch restrictions
-      await tx.sms_roleBranchRestrictions.deleteMany({
-        where: { roleId },
-      });
+        // Delete existing role branch restrictions
+        await tx.sms_roleBranchRestrictions.deleteMany({
+          where: { roleId },
+        });
 
-      // Insert new role permissions
-      for (const [key, item] of incomingPermissions) {
-        const perm = permissionKeyMap.get(key);
-        if (!perm) continue;
+        // Prepare new role permissions for batch insertion
+        const permissionsData: {
+          id: string;
+          roleId: string;
+          permissionId: string;
+          scope: sms_rolePermissions_scope;
+          grantedById: string;
+          updatedAt: Date;
+        }[] = [];
 
-        await tx.sms_rolePermissions.create({
-          data: {
+        for (const [key, item] of incomingPermissions) {
+          const perm = permissionKeyMap.get(key);
+          if (!perm) continue;
+
+          permissionsData.push({
+            id: randomUUID(),
             roleId,
             permissionId: perm.id,
             scope: item.scope,
             grantedById: actorId,
-          },
-        });
-      }
+            updatedAt: new Date(),
+          });
+        }
 
-      // Insert branch restrictions
-      for (const [moduleCode, branchIds] of moduleRestrictedBranchesMap) {
-        for (const branchId of branchIds) {
-          await tx.sms_roleBranchRestrictions.create({
-            data: {
+        if (permissionsData.length > 0) {
+          if (typeof tx.sms_rolePermissions.createMany === 'function') {
+            await tx.sms_rolePermissions.createMany({
+              data: permissionsData,
+            });
+          } else {
+            for (const p of permissionsData) {
+              await tx.sms_rolePermissions.create({ data: p });
+            }
+          }
+        }
+
+        // Prepare branch restrictions for batch insertion
+        const branchRestrictionsData: {
+          id: string;
+          roleId: string;
+          moduleCode: string;
+          branchId: string;
+        }[] = [];
+
+        for (const [moduleCode, branchIds] of moduleRestrictedBranchesMap) {
+          for (const branchId of branchIds) {
+            branchRestrictionsData.push({
+              id: randomUUID(),
               roleId,
               moduleCode,
               branchId,
-            },
-          });
+            });
+          }
         }
-      }
 
-      // Update role's updatedAt timestamp
-      const updatedRole = await tx.sms_roles.update({
-        where: { id: roleId },
-        data: { updatedAt: new Date() },
-      });
+        if (branchRestrictionsData.length > 0) {
+          if (typeof tx.sms_roleBranchRestrictions.createMany === 'function') {
+            await tx.sms_roleBranchRestrictions.createMany({
+              data: branchRestrictionsData,
+            });
+          } else {
+            for (const b of branchRestrictionsData) {
+              await tx.sms_roleBranchRestrictions.create({ data: b });
+            }
+          }
+        }
 
-      const isZeroPermissions = incomingPermissions.size === 0;
+        // Update role's updatedAt timestamp
+        const updatedRole = await tx.sms_roles.update({
+          where: { id: roleId },
+          data: { updatedAt: new Date() },
+        });
 
-      return {
-        success: true,
-        roleId,
-        updatedAt: updatedRole.updatedAt,
-        versionToken: updatedRole.updatedAt.toISOString(),
-        assignedPermissionsCount: incomingPermissions.size,
-        warning: isZeroPermissions
-          ? 'Warning: This role now has zero granted permissions. Users assigned to this role will not have protected application access.'
-          : null,
-      };
-    });
+        const isZeroPermissions = incomingPermissions.size === 0;
+
+        return {
+          success: true,
+          roleId,
+          updatedAt: updatedRole.updatedAt,
+          versionToken: updatedRole.updatedAt.toISOString(),
+          assignedPermissionsCount: incomingPermissions.size,
+          warning: isZeroPermissions
+            ? 'Warning: This role now has zero granted permissions. Users assigned to this role will not have protected application access.'
+            : null,
+        };
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000,
+      },
+    );
   }
 }

@@ -86,6 +86,8 @@ export class OrganisationService {
       website: dto.website || null,
       logoUrl: dto.logoUrl || null,
       status: (dto.status || 'active') as sms_organizations_status,
+      operatingMode: (dto.operatingMode || 'INDIVIDUAL_WEBSITE') as any,
+      marketplaceListingStatus: 'draft' as any,
     };
 
     const ownerData = {
@@ -459,6 +461,8 @@ export class OrganisationService {
     if (dto.website !== undefined) orgData.website = dto.website;
     if (dto.logoUrl !== undefined) orgData.logoUrl = dto.logoUrl;
     if (dto.status) orgData.status = dto.status;
+    if (dto.operatingMode) orgData.operatingMode = dto.operatingMode;
+    if (dto.marketplaceListingStatus) orgData.marketplaceListingStatus = dto.marketplaceListingStatus;
 
     let subscriptionData: any = null;
     if (
@@ -520,9 +524,22 @@ export class OrganisationService {
           code: existingOrg.code,
           status: existingOrg.status,
           email: existingOrg.email,
+          operatingMode: existingOrg.operatingMode,
+          marketplaceListingStatus: existingOrg.marketplaceListingStatus,
         },
       },
     );
+
+    if (dto.operatingMode && dto.operatingMode !== existingOrg.operatingMode) {
+      await this.organisationRepository.createAuditLog({
+        organizationId: id,
+        performedById: performedById || null,
+        action: 'ORGANISATION_OPERATING_MODE_CHANGED',
+        oldValue: { operatingMode: existingOrg.operatingMode },
+        newValue: { operatingMode: dto.operatingMode },
+        ipAddress: clientIp || null,
+      });
+    }
 
     return {
       message: 'Organisation updated successfully.',

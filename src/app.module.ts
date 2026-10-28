@@ -11,6 +11,8 @@ import { OrganisationModule } from './modules/organisation/core/organisation.mod
 import { SharedModule } from './shared/shared.module';
 import { RolePermissionModule } from './modules/role-permission/role-permission.module';
 import { BranchModule } from './modules/branch/branch.module';
+import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
+import { BookingChannelModule } from './modules/booking-channel/booking-channel.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { BranchModule } from './modules/branch/branch.module';
     OrganisationModule,
     BranchModule,
     RolePermissionModule,
+    PlatformSettingsModule,
+    BookingChannelModule,
     SharedModule,
     ThrottlerModule.forRoot([
       {

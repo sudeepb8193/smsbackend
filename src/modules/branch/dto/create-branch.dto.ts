@@ -8,6 +8,7 @@ import {
   Matches,
   IsUUID,
   IsDateString,
+  ValidateIf,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { sms_branches_branchType, sms_branches_status } from '@prisma/client';
@@ -51,6 +52,8 @@ export class CreateBranchDto {
   status?: sms_branches_status;
 
   @IsOptional()
+  @Transform(({ value }) => (value === '' || value === null ? null : value))
+  @ValidateIf((o) => o.launchedAt !== null && o.launchedAt !== undefined && o.launchedAt !== '')
   @IsDateString(
     {},
     { message: 'Launched at must be a valid ISO date string (YYYY-MM-DD)' },

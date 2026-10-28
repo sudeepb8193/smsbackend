@@ -7,7 +7,7 @@ import {
   Min,
   IsDateString,
 } from 'class-validator';
-import { BusinessTypeEnum, OrganisationStatusEnum } from './create-organisation.dto';
+import { BusinessTypeEnum, OrganisationStatusEnum, OperatingModeEnum } from './create-organisation.dto';
 
 export class UpdateOrganisationDto {
   @IsString()
@@ -21,6 +21,14 @@ export class UpdateOrganisationDto {
   @IsEnum(BusinessTypeEnum)
   @IsOptional()
   businessType?: BusinessTypeEnum;
+
+  @IsEnum(OperatingModeEnum)
+  @IsOptional()
+  operatingMode?: OperatingModeEnum;
+
+  @IsString()
+  @IsOptional()
+  marketplaceListingStatus?: string;
 
   @IsString()
   @IsOptional()

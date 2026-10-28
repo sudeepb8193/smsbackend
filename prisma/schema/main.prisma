@@ -36,6 +36,18 @@ enum sms_organizations_status {
   suspended
   inactive
 }
+enum sms_organizations_operatingMode {
+  INDIVIDUAL_WEBSITE
+  CENTRAL_MARKETPLACE
+}
+enum sms_organizations_marketplaceListingStatus {
+  draft
+  pending_review
+  approved
+  published
+  rejected
+  suspended
+}
 enum sms_organizationContacts_contactType {
   primary
   support
