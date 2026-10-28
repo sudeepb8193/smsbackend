@@ -10,11 +10,14 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import * as bcrypt from 'bcrypt';
 
+import { EffectivePermissionResolverService } from '../modules/role-permission/services/effective-permission-resolver.service';
+
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private effectivePermissionResolver: EffectivePermissionResolverService,
   ) {}
 
   /**
@@ -220,25 +223,78 @@ export class AuthService {
     const roleName = primaryAssigned?.role?.name || 'Staff';
     const roleSlug = primaryAssigned?.role?.slug || 'staff';
 
+    // Resolve effective permissions
+    let permissions: string[] = [];
+    let effectivePermissions: any[] = [];
+
+    const activeUserRoles = userRoles.filter(
+      (ur) => ur.role?.status === 'active' && !ur.role?.deletedAt,
+    );
+    const roleSlugs = activeUserRoles
+      .map((ur) => ur.role?.slug?.toLowerCase())
+      .filter((s): s is string => Boolean(s));
+    const allRoleNames = activeUserRoles
+      .map((ur) => ur.role?.name)
+      .filter((n): n is string => Boolean(n));
+
+    const isSuperAdmin =
+      roleSlugs.includes('super-admin') ||
+      allRoleNames.some((n) => n.toUpperCase() === 'SUPER ADMIN' || n.toUpperCase() === 'SUPER_ADMIN');
+    const isOwner =
+      roleSlugs.includes('owner') ||
+      allRoleNames.some((n) => n.toUpperCase() === 'OWNER');
+
+    if (isSuperAdmin || isOwner) {
+      const allPerms = await this.prisma.sms_permissions.findMany({
+        where: { isLegacy: false },
+      });
+      permissions = allPerms.map((p) => p.permissionKey);
+      effectivePermissions = allPerms.map((p) => ({
+        permissionKey: p.permissionKey,
+        moduleCode: p.moduleCode,
+        action: p.action,
+        label: p.label,
+        scope: 'all_branches',
+        allowedBranchIds: [],
+        isAllBranches: true,
+      }));
+    } else if (user.organizationId) {
+      try {
+        const permMap = await this.effectivePermissionResolver.resolveUserPermissions(
+          user.id,
+          user.organizationId,
+        );
+        permissions = Array.from(permMap.keys());
+        effectivePermissions = Array.from(permMap.values());
+      } catch (err) {
+        console.warn('Failed to resolve effective permissions:', err);
+      }
+    }
+
     return {
       id: user.id,
       displayName: user.displayName,
       email: user.email,
       organizationId: user.organizationId,
-      organization: user.organization ? {
-        id: user.organization.id,
-        name: user.organization.name,
-        logoUrl: user.organization.logoUrl,
-        businessType: user.organization.businessType,
-        slug: user.organization.slug,
-        code: user.organization.code,
-        operatingMode: user.organization.operatingMode,
-        marketplaceListingStatus: user.organization.marketplaceListingStatus,
-      } : null,
+      organization: user.organization
+        ? {
+            id: user.organization.id,
+            name: user.organization.name,
+            logoUrl: user.organization.logoUrl,
+            businessType: user.organization.businessType,
+            slug: user.organization.slug,
+            code: user.organization.code,
+            operatingMode: user.organization.operatingMode,
+            marketplaceListingStatus: user.organization.marketplaceListingStatus,
+          }
+        : null,
       status: user.status,
       lastLoginAt: user.lastLoginAt,
       role: roleName,
       roleSlug: roleSlug,
+      roles: [...new Set([...roleSlugs, ...allRoleNames])],
+      permissions,
+      effectivePermissions,
     };
   }
 

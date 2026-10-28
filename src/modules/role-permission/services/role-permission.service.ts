@@ -8,11 +8,13 @@ import { PrismaService } from '../../../database/prisma.service';
 import { AssignRolePermissionsDto } from '../dto/assign-role-permissions.dto';
 import { sms_rolePermissions_scope } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { EffectivePermissionResolverService } from './effective-permission-resolver.service';
 
 @Injectable()
 export class RolePermissionService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly effectivePermissionResolver: EffectivePermissionResolverService,
   ) {}
 
   /**
@@ -319,6 +321,9 @@ export class RolePermissionService {
           where: { id: roleId },
           data: { updatedAt: new Date() },
         });
+
+        // Invalidate effective permission cache for all users immediately
+        this.effectivePermissionResolver.invalidateCache();
 
         const isZeroPermissions = incomingPermissions.size === 0;
 

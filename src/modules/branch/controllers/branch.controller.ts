@@ -19,7 +19,9 @@ import { QueryBranchDto } from '../dto/query-branch.dto';
 import { CopyBranchSettingsDto } from '../dto/copy-branch-settings.dto';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { PermissionsGuard } from '../../role-permission/guards/permissions.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { RequirePermissions } from '../../role-permission/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 import type { Request } from 'express';
@@ -27,7 +29,7 @@ import type { Request } from 'express';
 import { Patch } from '@nestjs/common';
 
 @Controller(['branches', 'organizations/:orgId/branches'])
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class BranchController {
   constructor(private readonly branchService: BranchService) {}
 
@@ -36,7 +38,7 @@ export class BranchController {
    * GET /branches/check-code?code=BLR-01
    */
   @Get('check-code')
-  @Roles('SUPER_ADMIN', 'OWNER', 'super-admin', 'owner')
+  @RequirePermissions('branches.view')
   @HttpCode(HttpStatus.OK)
   async checkCode(
     @Query('code') code: string,
@@ -60,18 +62,7 @@ export class BranchController {
    * GET /branches or GET /organizations/:orgId/branches
    */
   @Get()
-  @Roles(
-    'SUPER_ADMIN',
-    'OWNER',
-    'BRANCH_MANAGER',
-    'ACCOUNTANT',
-    'FRONT_DESK',
-    'super-admin',
-    'owner',
-    'branch-manager',
-    'accountant',
-    'front-desk',
-  )
+  @RequirePermissions('branches.view')
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryBranchDto,
@@ -90,7 +81,7 @@ export class BranchController {
    * POST /branches or POST /organizations/:orgId/branches
    */
   @Post()
-  @Roles('SUPER_ADMIN', 'OWNER', 'super-admin', 'owner')
+  @RequirePermissions('branches.create')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateBranchDto,
@@ -110,7 +101,7 @@ export class BranchController {
    * GET /branches/:id/blockers
    */
   @Get(':id/blockers')
-  @Roles('SUPER_ADMIN', 'OWNER', 'super-admin', 'owner')
+  @RequirePermissions('branches.delete')
   @HttpCode(HttpStatus.OK)
   async getBlockers(
     @Param('id') id: string,
@@ -124,7 +115,7 @@ export class BranchController {
    * POST /branches/:id/copy-settings
    */
   @Post(':id/copy-settings')
-  @Roles('SUPER_ADMIN', 'OWNER', 'super-admin', 'owner')
+  @RequirePermissions('branches.create', 'branches.edit')
   @HttpCode(HttpStatus.OK)
   async copySettings(
     @Param('id') id: string,
@@ -139,18 +130,7 @@ export class BranchController {
    * GET /branches/:id
    */
   @Get(':id')
-  @Roles(
-    'SUPER_ADMIN',
-    'OWNER',
-    'BRANCH_MANAGER',
-    'ACCOUNTANT',
-    'FRONT_DESK',
-    'super-admin',
-    'owner',
-    'branch-manager',
-    'accountant',
-    'front-desk',
-  )
+  @RequirePermissions('branches.view')
   @HttpCode(HttpStatus.OK)
   async findOne(
     @Param('id') id: string,
@@ -165,7 +145,7 @@ export class BranchController {
    */
   @Put(':id')
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'OWNER', 'BRANCH_MANAGER', 'super-admin', 'owner', 'branch-manager')
+  @RequirePermissions('branches.edit')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id') id: string,
@@ -182,7 +162,7 @@ export class BranchController {
    * DELETE /branches/:id
    */
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'OWNER', 'super-admin', 'owner')
+  @RequirePermissions('branches.delete')
   @HttpCode(HttpStatus.OK)
   async delete(
     @Param('id') id: string,

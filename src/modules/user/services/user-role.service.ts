@@ -9,10 +9,14 @@ import { PrismaService } from '../../../database/prisma.service';
 import { AssignRoleDto } from '../dto/assign-role.dto';
 import { BulkAssignRoleDto } from '../dto/bulk-assign-role.dto';
 import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
+import { EffectivePermissionResolverService } from '../../role-permission/services/effective-permission-resolver.service';
 
 @Injectable()
 export class UserRoleService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private effectivePermissionResolver: EffectivePermissionResolverService,
+  ) {}
 
   /**
    * Helper to resolve actor roles
@@ -378,7 +382,7 @@ export class UserRoleService {
         });
       }
 
-      return {
+      const res = {
         id: result.id,
         userId: result.userId,
         roleId: result.roleId,
@@ -386,6 +390,9 @@ export class UserRoleService {
         isPrimary: result.isPrimary,
         assignedAt: result.assignedAt,
       };
+
+      this.effectivePermissionResolver.invalidateCache(userId);
+      return res;
     });
   }
 
@@ -428,6 +435,8 @@ export class UserRoleService {
         data: { isPrimary: true },
       }),
     ]);
+
+    this.effectivePermissionResolver.invalidateCache(userId);
 
     return {
       userId,
@@ -591,12 +600,15 @@ export class UserRoleService {
         }
       }
 
-      return {
+      const res = {
         userId,
         removedRoleId: roleId,
         removedRoleName: targetAssignment.role.name,
         message: 'Role successfully removed from user',
       };
+
+      this.effectivePermissionResolver.invalidateCache(userId);
+      return res;
     });
   }
 
