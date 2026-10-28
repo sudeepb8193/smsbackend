@@ -7,11 +7,13 @@ import {
 import { PrismaService } from '../../../database/prisma.service';
 import { CreateStaffOverrideDto } from '../dto/create-staff-override.dto';
 import { sms_staffPermissionOverrides_overrideType } from '@prisma/client';
+import { EffectivePermissionResolverService } from './effective-permission-resolver.service';
 
 @Injectable()
 export class StaffOverrideService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly effectivePermissionResolver: EffectivePermissionResolverService,
   ) {}
 
   /**
@@ -241,6 +243,10 @@ export class StaffOverrideService {
           include: { permission: true, branch: true },
         });
 
+    if (staff.user?.id) {
+      this.effectivePermissionResolver.invalidateCache(staff.user.id);
+    }
+
     return {
       id: result.id,
       staffId: result.staffId,
@@ -282,6 +288,10 @@ export class StaffOverrideService {
     await this.prisma.sms_staffPermissionOverrides.delete({
       where: { id: overrideId },
     });
+
+    if (staff.user?.id) {
+      this.effectivePermissionResolver.invalidateCache(staff.user.id);
+    }
 
     return {
       success: true,

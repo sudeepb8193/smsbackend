@@ -37,18 +37,24 @@ export class PermissionsGuard implements CanActivate {
       });
     }
 
-    // Super Admin platform role bypass check
+    // Super Admin & Owner platform/organization role bypass check
     const userRoles = await this.prisma.sms_userRoles.findMany({
       where: { userId: user.id, removedAt: null },
       include: { role: true },
     });
-    const isSuperAdmin = userRoles.some(
-      (ur) =>
-        ur.role?.slug?.toLowerCase() === 'super-admin' ||
-        ur.role?.name?.toUpperCase() === 'SUPER_ADMIN',
-    );
+    const isSuperAdminOrOwner = userRoles.some((ur) => {
+      const slug = ur.role?.slug?.toLowerCase();
+      const name = ur.role?.name?.toUpperCase();
+      return (
+        slug === 'super-admin' ||
+        slug === 'owner' ||
+        name === 'SUPER_ADMIN' ||
+        name === 'SUPER ADMIN' ||
+        name === 'OWNER'
+      );
+    });
 
-    if (isSuperAdmin) {
+    if (isSuperAdminOrOwner) {
       return true;
     }
 
@@ -57,7 +63,9 @@ export class PermissionsGuard implements CanActivate {
       request.params?.branchId ||
       request.query?.branchId ||
       request.body?.branchId ||
-      undefined;
+      (request.params?.id && (request.baseUrl?.includes('branch') || request.originalUrl?.includes('branch'))
+        ? request.params?.id
+        : undefined);
 
     // Check each required permission
     for (const permKey of requiredPermissions) {

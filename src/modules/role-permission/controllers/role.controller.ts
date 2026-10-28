@@ -20,14 +20,15 @@ import { AssignRolePermissionsDto } from '../dto/assign-role-permissions.dto';
 import { QueryRolesDto } from '../dto/query-roles.dto';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { RequirePermissions } from '../decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 import type { Request } from 'express';
 
 @Controller('api/roles')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('SUPER_ADMIN', 'super-admin')
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class RoleController {
   constructor(
     private readonly roleService: RoleService,
@@ -38,7 +39,7 @@ export class RoleController {
    * Get organization branches for branch-scope restrictions
    */
   @Get('meta/branches')
-  @Roles('SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.view')
   @HttpCode(HttpStatus.OK)
   async getBranches(
     @CurrentUser() user: AuthenticatedUser,
@@ -63,7 +64,7 @@ export class RoleController {
    * List organization roles
    */
   @Get()
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.view')
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryRolesDto,
@@ -77,7 +78,7 @@ export class RoleController {
    * Get single role details
    */
   @Get(':id')
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.view')
   @HttpCode(HttpStatus.OK)
   async findOne(
     @Param('id') roleId: string,
@@ -91,7 +92,7 @@ export class RoleController {
    * Create new custom role
    */
   @Post()
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.create')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateRoleDto,
@@ -111,7 +112,7 @@ export class RoleController {
    * Update role metadata
    */
   @Put(':id')
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.edit')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id') roleId: string,
@@ -135,7 +136,7 @@ export class RoleController {
    * Soft delete custom role
    */
   @Delete(':id')
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.delete')
   @HttpCode(HttpStatus.OK)
   async remove(
     @Param('id') roleId: string,
@@ -157,7 +158,7 @@ export class RoleController {
    * Get affected users for a role
    */
   @Get(':id/affected-users')
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.view')
   @HttpCode(HttpStatus.OK)
   async getAffectedUsers(
     @Param('id') roleId: string,
@@ -171,7 +172,7 @@ export class RoleController {
    * Get role's assigned permissions and branch restrictions
    */
   @Get(':id/permissions')
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.view')
   @HttpCode(HttpStatus.OK)
   async getRolePermissions(
     @Param('id') roleId: string,
@@ -189,7 +190,7 @@ export class RoleController {
    * Save role permission assignments and branch scopes with optimistic concurrency
    */
   @Put(':id/permissions')
-  @Roles('OWNER', 'owner', 'SUPER_ADMIN', 'super-admin')
+  @RequirePermissions('roles.edit')
   @HttpCode(HttpStatus.OK)
   async updateRolePermissions(
     @Param('id') roleId: string,

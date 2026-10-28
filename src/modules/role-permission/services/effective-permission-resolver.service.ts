@@ -123,56 +123,87 @@ export class EffectivePermissionResolverService {
     // 3. Union Permissions Across Assigned Active Roles
     const effectiveMap = new Map<string, EffectivePermissionEntry>();
 
-    for (const ur of userRoles) {
-      const role = ur.role;
-      if (!role || role.status !== 'active' || role.deletedAt) continue;
+    // Check if user holds Super Admin or Owner role
+    const isSuperAdminOrOwner = userRoles.some((ur) => {
+      const slug = ur.role?.slug?.toLowerCase();
+      const name = ur.role?.name?.toUpperCase();
+      return (
+        slug === 'super-admin' ||
+        slug === 'owner' ||
+        name === 'SUPER_ADMIN' ||
+        name === 'SUPER ADMIN' ||
+        name === 'OWNER'
+      );
+    });
 
-      for (const rp of role.rolePermissions) {
-        const perm = rp.permission;
-        if (!perm || perm.isLegacy) continue;
+    if (isSuperAdminOrOwner) {
+      const allPermissions = await this.prisma.sms_permissions.findMany({
+        where: { isLegacy: false },
+      });
+      for (const perm of allPermissions) {
+        effectiveMap.set(perm.permissionKey, {
+          permissionKey: perm.permissionKey,
+          moduleCode: perm.moduleCode,
+          action: perm.action,
+          label: perm.label,
+          scope: sms_rolePermissions_scope.all_branches,
+          allowedBranchIds: [],
+          isAllBranches: true,
+          grantedByRoleNames: ['Owner / Super Admin'],
+        });
+      }
+    } else {
+      for (const ur of userRoles) {
+        const role = ur.role;
+        if (!role || role.status !== 'active' || role.deletedAt) continue;
 
-        // Calculate branch scope for this role-permission
-        let allowedBranches: string[] = [];
-        let isAll = false;
+        for (const rp of role.rolePermissions) {
+          const perm = rp.permission;
+          if (!perm || perm.isLegacy) continue;
 
-        if (rp.scope === sms_rolePermissions_scope.all_branches) {
-          isAll = true;
-        } else if (rp.scope === sms_rolePermissions_scope.own_branch) {
-          allowedBranches = Array.from(ownBranchIds);
-        } else if (rp.scope === sms_rolePermissions_scope.restricted_branches) {
-          // Look up restricted branches for this role and moduleCode
-          const restricted = role.roleBranchRestrictions
-            .filter((r) => r.moduleCode === perm.moduleCode)
-            .map((r) => r.branchId);
-          allowedBranches = restricted;
-        }
+          // Calculate branch scope for this role-permission
+          let allowedBranches: string[] = [];
+          let isAll = false;
 
-        if (!effectiveMap.has(perm.permissionKey)) {
-          effectiveMap.set(perm.permissionKey, {
-            permissionKey: perm.permissionKey,
-            moduleCode: perm.moduleCode,
-            action: perm.action,
-            label: perm.label,
-            scope: rp.scope,
-            allowedBranchIds: allowedBranches,
-            isAllBranches: isAll,
-            grantedByRoleNames: [role.name],
-          });
-        } else {
-          // Merge scope (broadest wins: all_branches > restricted_branches / own_branch)
-          const existing = effectiveMap.get(perm.permissionKey)!;
-          if (!existing.grantedByRoleNames.includes(role.name)) {
-            existing.grantedByRoleNames.push(role.name);
+          if (rp.scope === sms_rolePermissions_scope.all_branches) {
+            isAll = true;
+          } else if (rp.scope === sms_rolePermissions_scope.own_branch) {
+            allowedBranches = Array.from(ownBranchIds);
+          } else if (rp.scope === sms_rolePermissions_scope.restricted_branches) {
+            // Look up restricted branches for this role and moduleCode
+            const restricted = role.roleBranchRestrictions
+              .filter((r) => r.moduleCode === perm.moduleCode)
+              .map((r) => r.branchId);
+            allowedBranches = restricted;
           }
 
-          if (isAll) {
-            existing.isAllBranches = true;
-            existing.scope = sms_rolePermissions_scope.all_branches;
-            existing.allowedBranchIds = [];
-          } else if (!existing.isAllBranches) {
-            // Merge allowed branches
-            const combined = new Set([...existing.allowedBranchIds, ...allowedBranches]);
-            existing.allowedBranchIds = Array.from(combined);
+          if (!effectiveMap.has(perm.permissionKey)) {
+            effectiveMap.set(perm.permissionKey, {
+              permissionKey: perm.permissionKey,
+              moduleCode: perm.moduleCode,
+              action: perm.action,
+              label: perm.label,
+              scope: rp.scope,
+              allowedBranchIds: allowedBranches,
+              isAllBranches: isAll,
+              grantedByRoleNames: [role.name],
+            });
+          } else {
+            // Merge scope (broadest wins: all_branches > restricted_branches / own_branch)
+            const existing = effectiveMap.get(perm.permissionKey)!;
+            if (!existing.grantedByRoleNames.includes(role.name)) {
+              existing.grantedByRoleNames.push(role.name);
+            }
+
+            if (isAll) {
+              existing.isAllBranches = true;
+              existing.scope = sms_rolePermissions_scope.all_branches;
+              existing.allowedBranchIds = [];
+            } else if (!existing.isAllBranches) {
+              // Merge allowed branches
+              const combined = new Set([...existing.allowedBranchIds, ...allowedBranches]);
+              existing.allowedBranchIds = Array.from(combined);
+            }
           }
         }
       }
@@ -245,6 +276,36 @@ export class EffectivePermissionResolverService {
   }
 
   /**
+   * Resolve singular/plural aliases for permission keys (e.g. branch.create <-> branches.create)
+   */
+  getPermissionAliases(permKey: string): string[] {
+    const key = permKey.trim().toLowerCase();
+    const [module, action] = key.split('.');
+    if (!action) return [key];
+
+    const aliases = new Set<string>([key]);
+    const spellingVariants = [module];
+    if (module.includes('organisation')) {
+      spellingVariants.push(module.replace(/organisation/g, 'organization'));
+    } else if (module.includes('organization')) {
+      spellingVariants.push(module.replace(/organization/g, 'organisation'));
+    }
+
+    for (const m of spellingVariants) {
+      aliases.add(`${m}.${action}`);
+      if (m.endsWith('es')) {
+        aliases.add(`${m.slice(0, -2)}.${action}`); // branches -> branch
+      } else if (m.endsWith('s')) {
+        aliases.add(`${m.slice(0, -1)}.${action}`); // users -> user, roles -> role, organizations -> organization
+      } else {
+        aliases.add(`${m}s.${action}`); // user -> users, role -> roles, organization -> organizations
+        aliases.add(`${m}es.${action}`); // branch -> branches
+      }
+    }
+    return Array.from(aliases);
+  }
+
+  /**
    * Primary authorization check method for APIs & guards
    */
   async can(
@@ -255,7 +316,18 @@ export class EffectivePermissionResolverService {
   ): Promise<AuthorizationResult> {
     const permissionsMap = await this.resolveUserPermissions(userId, organizationId);
 
-    const entry = permissionsMap.get(requiredPermission);
+    const aliases = this.getPermissionAliases(requiredPermission);
+    let entry: EffectivePermissionEntry | undefined;
+    let matchedKey: string | undefined;
+
+    for (const k of aliases) {
+      if (permissionsMap.has(k)) {
+        entry = permissionsMap.get(k);
+        matchedKey = k;
+        break;
+      }
+    }
+
     if (!entry) {
       return {
         authorized: false,
@@ -268,7 +340,7 @@ export class EffectivePermissionResolverService {
       if (!entry.isAllBranches && !entry.allowedBranchIds.includes(branchId)) {
         return {
           authorized: false,
-          reason: `Permission "${requiredPermission}" is granted, but access to branch "${branchId}" is restricted.`,
+          reason: `Permission "${matchedKey || requiredPermission}" is granted, but access to branch "${branchId}" is restricted.`,
           effectiveScope: entry.scope,
         };
       }
@@ -277,7 +349,7 @@ export class EffectivePermissionResolverService {
     return {
       authorized: true,
       effectiveScope: entry.scope,
-      matchedPermission: requiredPermission,
+      matchedPermission: matchedKey || requiredPermission,
     };
   }
 

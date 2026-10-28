@@ -23,7 +23,9 @@ import { AcceptInviteDto } from '../dto/accept-invite.dto';
 import { ChangeUserStatusDto } from '../dto/change-user-status.dto';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { PermissionsGuard } from '../../role-permission/guards/permissions.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { RequirePermissions } from '../../role-permission/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 import { Throttle } from '@nestjs/throttler';
@@ -94,8 +96,8 @@ export class UserController {
   /**
    * List users in organization with search, filters, and pagination
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.view')
   @Get()
   @HttpCode(HttpStatus.OK)
   async findAll(
@@ -110,8 +112,8 @@ export class UserController {
   /**
    * Get all active roles available for assignment in the organization
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.view')
   @Get('available-roles')
   @HttpCode(HttpStatus.OK)
   async getAvailableRoles(
@@ -126,8 +128,8 @@ export class UserController {
   /**
    * Invite a new user to the organization (Owner, Super Admin, Branch Manager)
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.create')
   @Post('invite')
   @HttpCode(HttpStatus.CREATED)
   async inviteUser(
@@ -142,8 +144,8 @@ export class UserController {
   /**
    * Resend invitation with a refreshed single-use token and renewed 7-day expiry
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.create')
   @Post(':id/resend-invite')
   @HttpCode(HttpStatus.OK)
   async resendInvite(
@@ -158,8 +160,8 @@ export class UserController {
   /**
    * Get single user details by ID
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.view')
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async findOne(
@@ -174,8 +176,8 @@ export class UserController {
   /**
    * Update user profile information
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.edit')
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   async updateUser(
@@ -191,8 +193,8 @@ export class UserController {
   /**
    * Change user account status (active, suspended, deactivated)
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner', 'BRANCH_MANAGER', 'branch-manager')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.edit')
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
   async changeUserStatus(
@@ -208,8 +210,8 @@ export class UserController {
   /**
    * Soft delete user account (blocked if historical transactions exist)
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER_ADMIN', 'super-admin', 'OWNER', 'owner')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @RequirePermissions('users.delete')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteUser(

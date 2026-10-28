@@ -9,9 +9,10 @@ import { OrganizationContactVerificationController } from '../organization-conta
 import { OrganizationContactVerificationService } from '../organization-contact/organization-contact-verification.service';
 import { OwnerOrganisationController } from '../owner/owner-organisation.controller';
 import { PrismaModule } from '../../../database/prisma.module';
+import { RolePermissionModule } from '../../role-permission/role-permission.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, RolePermissionModule],
   controllers: [
     OrganisationController,
     AddressController,

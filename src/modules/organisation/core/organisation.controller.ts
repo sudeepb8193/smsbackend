@@ -22,12 +22,14 @@ import { UpdateOrganisationSetupDto } from '../dto/update-organisation-setup.dto
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { PermissionsGuard } from '../../role-permission/guards/permissions.guard';
+import { RequirePermissions } from '../../role-permission/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 import type { Request } from 'express';
 
 @Controller('super-admin/organisations')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('SUPER_ADMIN', 'super-admin')
 export class OrganisationController {
   constructor(private readonly organisationService: OrganisationService) {}
@@ -37,16 +39,18 @@ export class OrganisationController {
    * GET /super-admin/organisations
    */
   @Get()
+  @RequirePermissions('organizations.view')
   @HttpCode(HttpStatus.OK)
   async findAll(@Query() query: QueryOrganisationDto) {
     return this.organisationService.findAll(query);
   }
 
   /**
-   * 2. Create Organisation (Super Admin only)
+   * 2. Create Organisation (Super Admin only or authorized permission)
    * POST /super-admin/organisations
    */
   @Post()
+  @RequirePermissions('organizations.create')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateOrganisationDto,
@@ -62,12 +66,14 @@ export class OrganisationController {
    * GET /super-admin/organisations/:organisationId
    */
   @Get(':organisationId')
+  @RequirePermissions('organizations.view')
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('organisationId') organisationId: string) {
     return this.organisationService.findOne(organisationId);
   }
 
   @Get(':organisationId/slug-availability')
+  @RequirePermissions('organizations.view')
   @HttpCode(HttpStatus.OK)
   async checkSlugAvailability(
     @Param('organisationId') organisationId: string,
@@ -77,6 +83,7 @@ export class OrganisationController {
   }
 
   @Put(':organisationId/setup')
+  @RequirePermissions('organizations.edit')
   @HttpCode(HttpStatus.OK)
   async updateSetup(
     @Param('organisationId') organisationId: string,
@@ -98,6 +105,7 @@ export class OrganisationController {
    * PUT/PATCH /super-admin/organisations/:organisationId
    */
   @Put(':organisationId')
+  @RequirePermissions('organizations.edit')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('organisationId') organisationId: string,
@@ -115,6 +123,7 @@ export class OrganisationController {
   }
 
   @Patch(':organisationId')
+  @RequirePermissions('organizations.edit')
   @HttpCode(HttpStatus.OK)
   async patchUpdate(
     @Param('organisationId') organisationId: string,
@@ -136,6 +145,7 @@ export class OrganisationController {
    * PATCH /super-admin/organisations/:organisationId/status
    */
   @Patch(':organisationId/status')
+  @RequirePermissions('organizations.edit')
   @HttpCode(HttpStatus.OK)
   async updateStatus(
     @Param('organisationId') organisationId: string,
@@ -157,6 +167,7 @@ export class OrganisationController {
    * DELETE /super-admin/organisations/:organisationId
    */
   @Delete(':organisationId')
+  @RequirePermissions('organizations.delete')
   @HttpCode(HttpStatus.OK)
   async remove(
     @Param('organisationId') organisationId: string,

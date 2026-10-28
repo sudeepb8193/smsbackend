@@ -5,9 +5,10 @@ import { UserService } from './services/user.service';
 import { UserRoleService } from './services/user-role.service';
 import { PrismaModule } from '../../database/prisma.module';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { RolePermissionModule } from '../role-permission/role-permission.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, RolePermissionModule],
   controllers: [UserController, UserRoleController],
   providers: [UserService, UserRoleService, RolesGuard],
   exports: [UserService, UserRoleService],
