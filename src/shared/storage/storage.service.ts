@@ -130,6 +130,39 @@ export class StorageService {
   }
 
   /**
+   * Determine the public URL for an uploaded file key.
+   * In local environment, returns a random https://picsum.photos image.
+   * In production, resolves the real storage / CDN URL.
+   */
+  private resolveFileUrl(key: string): string {
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
+
+    if (!isProduction) {
+      // Deterministic random seed from file key so each uploaded file gets its own unique, stable random image
+      const seed = key.replace(/[^a-zA-Z0-9]/g, '-').slice(-24) || `${Date.now()}`;
+      return `https://picsum.photos/seed/${seed}/1200/800`;
+    }
+
+    const cdnUrl =
+      this.configService.get<string>('B2_PUBLIC_URL') ||
+      this.configService.get<string>('CDN_URL');
+    if (cdnUrl) {
+      return `${cdnUrl.replace(/\/+$/, '')}/${key}`;
+    }
+
+    const appUrl =
+      this.configService.get<string>('APP_URL') ||
+      this.configService.get<string>('BACKEND_URL') ||
+      '';
+    const apiPrefix = this.configService.get<string>('API_PREFIX') || 'sms';
+
+    return appUrl
+      ? `${appUrl.replace(/\/+$/, '')}/${apiPrefix}/storage/file?key=${encodeURIComponent(key)}`
+      : `/${apiPrefix}/storage/file?key=${encodeURIComponent(key)}`;
+  }
+
+  /**
    * Upload an image file to Backblaze B2 (with graceful local fallback if B2 creds are unconfigured/offline)
    */
   async uploadFile(
@@ -148,6 +181,8 @@ export class StorageService {
       file.originalname,
     );
 
+    const fileUrl = this.resolveFileUrl(key);
+
     // If credentials are placeholder values, save directly to local disk fallback
     if (this.isPlaceholderCreds) {
       this.logger.warn(
@@ -160,6 +195,8 @@ export class StorageService {
         originalName: file.originalname || fileName,
         mimeType: file.mimetype,
         size: file.size,
+        url: fileUrl,
+        fileUrl,
       };
     }
 
@@ -182,6 +219,8 @@ export class StorageService {
         originalName: file.originalname || fileName,
         mimeType: file.mimetype,
         size: file.size,
+        url: fileUrl,
+        fileUrl,
       };
     } catch (err: any) {
       this.logger.warn(
@@ -195,6 +234,8 @@ export class StorageService {
           originalName: file.originalname || fileName,
           mimeType: file.mimetype,
           size: file.size,
+          url: fileUrl,
+          fileUrl,
         };
       } catch (localErr) {
         this.logger.error(`Local fallback write failed:`, localErr);

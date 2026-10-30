@@ -4,4 +4,6 @@ export interface UploadedFileResponse {
   originalName: string;
   mimeType: string;
   size: number;
+  url: string;
+  fileUrl: string;
 }

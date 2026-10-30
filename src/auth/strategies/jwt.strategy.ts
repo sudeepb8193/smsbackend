@@ -30,6 +30,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     const user = await this.prisma.sms_users.findUnique({
       where: { id: userId },
+      include: {
+        userRolesAssignedToMe: {
+          include: { role: true },
+        },
+      },
     });
 
     if (!user || user.deletedAt) {
@@ -60,12 +65,18 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       });
     }
 
+    // Build role slugs list so downstream services can perform RBAC checks
+    const roleSlugs = (user.userRolesAssignedToMe || [])
+      .map((ur) => ur.role?.slug)
+      .filter((s): s is string => Boolean(s));
+
     return {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
       organizationId: user.organizationId,
       status: user.status,
+      roles: roleSlugs,
     };
   }
 }
