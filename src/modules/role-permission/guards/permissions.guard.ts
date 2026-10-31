@@ -37,24 +37,22 @@ export class PermissionsGuard implements CanActivate {
       });
     }
 
-    // Super Admin & Owner platform/organization role bypass check
+    // Super Admin platform role bypass check (only super-admin bypasses tenant permissions)
     const userRoles = await this.prisma.sms_userRoles.findMany({
       where: { userId: user.id, removedAt: null },
       include: { role: true },
     });
-    const isSuperAdminOrOwner = userRoles.some((ur) => {
+    const isSuperAdmin = userRoles.some((ur) => {
       const slug = ur.role?.slug?.toLowerCase();
       const name = ur.role?.name?.toUpperCase();
       return (
         slug === 'super-admin' ||
-        slug === 'owner' ||
         name === 'SUPER_ADMIN' ||
-        name === 'SUPER ADMIN' ||
-        name === 'OWNER'
+        name === 'SUPER ADMIN'
       );
     });
 
-    if (isSuperAdminOrOwner) {
+    if (isSuperAdmin) {
       return true;
     }
 

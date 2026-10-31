@@ -244,7 +244,7 @@ export class AuthService {
       roleSlugs.includes('owner') ||
       allRoleNames.some((n) => n.toUpperCase() === 'OWNER');
 
-    if (isSuperAdmin || isOwner) {
+    if (isSuperAdmin) {
       const allPerms = await this.prisma.sms_permissions.findMany({
         where: { isLegacy: false },
       });
