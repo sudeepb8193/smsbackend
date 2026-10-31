@@ -186,14 +186,11 @@ export class RolePermissionService {
         return p && p.moduleCode === moduleCode && p.action !== 'view';
       });
 
-      if (nonViewPerms.length > 0 && viewPerm && !incomingPermissions.has(viewKey)) {
-        // Auto-include View permission with the scope of the first non-view permission
-        const firstNonView = incomingPermissions.get(nonViewPerms[0])!;
-        incomingPermissions.set(viewKey, {
-          permissionKey: viewKey,
-          scope: firstNonView.scope,
-          restrictedBranchIds: firstNonView.restrictedBranchIds,
-        });
+      if (!incomingPermissions.has(viewKey)) {
+        // If view was explicitly omitted/revoked for a module, ensure dependent permissions of that module are removed.
+        for (const nonViewKey of nonViewPerms) {
+          incomingPermissions.delete(nonViewKey);
+        }
       }
     }
 

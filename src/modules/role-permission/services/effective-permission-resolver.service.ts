@@ -123,20 +123,18 @@ export class EffectivePermissionResolverService {
     // 3. Union Permissions Across Assigned Active Roles
     const effectiveMap = new Map<string, EffectivePermissionEntry>();
 
-    // Check if user holds Super Admin or Owner role
-    const isSuperAdminOrOwner = userRoles.some((ur) => {
+    // Check if user holds Super Admin role (only platform super-admin gets full system bypass)
+    const isSuperAdmin = userRoles.some((ur) => {
       const slug = ur.role?.slug?.toLowerCase();
       const name = ur.role?.name?.toUpperCase();
       return (
         slug === 'super-admin' ||
-        slug === 'owner' ||
         name === 'SUPER_ADMIN' ||
-        name === 'SUPER ADMIN' ||
-        name === 'OWNER'
+        name === 'SUPER ADMIN'
       );
     });
 
-    if (isSuperAdminOrOwner) {
+    if (isSuperAdmin) {
       const allPermissions = await this.prisma.sms_permissions.findMany({
         where: { isLegacy: false },
       });
@@ -149,13 +147,34 @@ export class EffectivePermissionResolverService {
           scope: sms_rolePermissions_scope.all_branches,
           allowedBranchIds: [],
           isAllBranches: true,
-          grantedByRoleNames: ['Owner / Super Admin'],
+          grantedByRoleNames: ['Super Admin'],
         });
       }
     } else {
       for (const ur of userRoles) {
         const role = ur.role;
         if (!role || role.status !== 'active' || role.deletedAt) continue;
+
+        // If an Owner role has never had rolePermissions configured in DB, provide default full access
+        const isOwnerRole = role.slug?.toLowerCase() === 'owner' || role.name?.toUpperCase() === 'OWNER';
+        if (isOwnerRole && (!role.rolePermissions || role.rolePermissions.length === 0)) {
+          const allPermissions = await this.prisma.sms_permissions.findMany({
+            where: { isLegacy: false },
+          });
+          for (const perm of allPermissions) {
+            effectiveMap.set(perm.permissionKey, {
+              permissionKey: perm.permissionKey,
+              moduleCode: perm.moduleCode,
+              action: perm.action,
+              label: perm.label,
+              scope: sms_rolePermissions_scope.all_branches,
+              allowedBranchIds: [],
+              isAllBranches: true,
+              grantedByRoleNames: [role.name || 'Owner'],
+            });
+          }
+          continue;
+        }
 
         for (const rp of role.rolePermissions) {
           const perm = rp.permission;
