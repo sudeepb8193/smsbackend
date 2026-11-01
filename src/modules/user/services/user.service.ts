@@ -169,6 +169,9 @@ export class UserService {
           createdBy: {
             select: { id: true, displayName: true, email: true },
           },
+          staffLinked: {
+            select: { id: true, fullName: true, employeeCode: true },
+          },
         },
       }),
     ]);
@@ -231,6 +234,8 @@ export class UserService {
         homeBranch,
         assignedBranchesCount: assignedBranches.length,
         assignedBranches,
+        isStaffLinked: Boolean(u.staffLinked),
+        staffLinked: u.staffLinked || null,
       };
     });
 

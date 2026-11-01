@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserRoleService } from './user-role.service';
 import { PrismaService } from '../../../database/prisma.service';
+import { EffectivePermissionResolverService } from '../../role-permission/services/effective-permission-resolver.service';
 import {
   BadRequestException,
   NotFoundException,
@@ -43,6 +44,15 @@ describe('UserRoleService', () => {
       providers: [
         UserRoleService,
         { provide: PrismaService, useValue: mockPrismaService },
+        {
+          provide: EffectivePermissionResolverService,
+          useValue: {
+            resolveUserPermissions: jest.fn().mockResolvedValue(new Map()),
+            getEffectivePermissionsSummary: jest.fn().mockResolvedValue([]),
+            can: jest.fn().mockResolvedValue({ authorized: true }),
+            invalidateCache: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

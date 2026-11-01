@@ -310,15 +310,47 @@ export class EffectivePermissionResolverService {
       spellingVariants.push(module.replace(/organization/g, 'organisation'));
     }
 
+    // Action aliases (e.g. update <-> edit)
+    const actionVariants = [action];
+    if (action === 'update') actionVariants.push('edit');
+    if (action === 'edit') actionVariants.push('update');
+
+    // Module 05 standardized operation mappings
+    if (key.startsWith('staff')) {
+      if (action === 'manage') {
+        aliases.add(`${module}.manage_status`);
+        aliases.add(`${module}.terminate`);
+        aliases.add(`${module}.link_user`);
+        aliases.add(`${module}.reveal_sensitive`);
+        aliases.add(`${module}.manage_versions`);
+        aliases.add(`${module}.transfer`);
+      }
+      if (['manage_status', 'terminate', 'link_user', 'reveal_sensitive', 'manage_versions', 'transfer'].includes(action)) {
+        aliases.add(`${module}.manage`);
+      }
+      if (action === 'upload' || action === 'assign') {
+        aliases.add(`${module}.create`);
+      }
+      if (action === 'download') {
+        aliases.add(`${module}.view`);
+      }
+      if (action === 'remove') {
+        aliases.add(`${module}.delete`);
+        aliases.add(`${module}.manage`);
+      }
+    }
+
     for (const m of spellingVariants) {
-      aliases.add(`${m}.${action}`);
-      if (m.endsWith('es')) {
-        aliases.add(`${m.slice(0, -2)}.${action}`); // branches -> branch
-      } else if (m.endsWith('s')) {
-        aliases.add(`${m.slice(0, -1)}.${action}`); // users -> user, roles -> role, organizations -> organization
-      } else {
-        aliases.add(`${m}s.${action}`); // user -> users, role -> roles, organization -> organizations
-        aliases.add(`${m}es.${action}`); // branch -> branches
+      for (const act of actionVariants) {
+        aliases.add(`${m}.${act}`);
+        if (m.endsWith('es')) {
+          aliases.add(`${m.slice(0, -2)}.${act}`); // branches -> branch
+        } else if (m.endsWith('s')) {
+          aliases.add(`${m.slice(0, -1)}.${act}`); // users -> user, roles -> role, organizations -> organization
+        } else {
+          aliases.add(`${m}s.${act}`); // user -> users, role -> roles, organization -> organizations
+          aliases.add(`${m}es.${act}`); // branch -> branches
+        }
       }
     }
     return Array.from(aliases);

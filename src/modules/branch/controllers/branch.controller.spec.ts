@@ -66,6 +66,13 @@ describe('BranchController', () => {
           provide: PrismaService,
           useValue: {},
         },
+        {
+          provide: require('../../role-permission/services/effective-permission-resolver.service').EffectivePermissionResolverService,
+          useValue: {
+            can: jest.fn().mockResolvedValue({ authorized: true }),
+            resolveUserPermissions: jest.fn().mockResolvedValue(new Map()),
+          },
+        },
         Reflector,
       ],
     }).compile();
