@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../database/prisma.service';
+import { EffectivePermissionResolverService } from '../modules/role-permission/services/effective-permission-resolver.service';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -71,6 +72,15 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: prismaService },
         { provide: JwtService, useValue: jwtService },
+        {
+          provide: EffectivePermissionResolverService,
+          useValue: {
+            resolveUserPermissions: jest.fn().mockResolvedValue(new Map()),
+            getEffectivePermissionsSummary: jest.fn().mockResolvedValue([]),
+            can: jest.fn().mockResolvedValue({ authorized: true }),
+            invalidateCache: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

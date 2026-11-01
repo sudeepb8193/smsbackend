@@ -621,31 +621,33 @@ export const GLOBAL_MATRIX_MODULES: ModuleMatrixDefinition[] = [
 export function getActionsForAccessLevel(level: MatrixAccessLevel): sms_permissions_action[] {
   switch (level) {
     case 'F':
-      // Full control — create, edit, delete, approve, view, export, print
+      // Full control — create, update, manage, delete, approve, view, export, print
       return [
         sms_permissions_action.view,
         sms_permissions_action.create,
-        sms_permissions_action.edit,
+        sms_permissions_action.update,
+        sms_permissions_action.manage,
         sms_permissions_action.delete,
         sms_permissions_action.approve,
         sms_permissions_action.export,
         sms_permissions_action.print,
       ];
     case 'M':
-      // Manage — create, edit, delete, view, export, print (no approve rights)
+      // Manage — create, update, manage, delete, view, export, print (no approve rights)
       return [
         sms_permissions_action.view,
         sms_permissions_action.create,
-        sms_permissions_action.edit,
+        sms_permissions_action.update,
+        sms_permissions_action.manage,
         sms_permissions_action.delete,
         sms_permissions_action.export,
         sms_permissions_action.print,
       ];
     case 'E':
-      // Edit — update records within scope, view
+      // Edit/Update — update records within scope, view
       return [
         sms_permissions_action.view,
-        sms_permissions_action.edit,
+        sms_permissions_action.update,
       ];
     case 'V':
       // View only
@@ -657,7 +659,7 @@ export function getActionsForAccessLevel(level: MatrixAccessLevel): sms_permissi
       return [
         sms_permissions_action.view,
         sms_permissions_action.create,
-        sms_permissions_action.edit,
+        sms_permissions_action.update,
       ];
     case null:
     default:
@@ -677,9 +679,11 @@ export async function seedGlobalMatrixPermissions(prisma: PrismaClient): Promise
   const allActions: sms_permissions_action[] = [
     sms_permissions_action.view,
     sms_permissions_action.create,
-    sms_permissions_action.edit,
+    sms_permissions_action.update,
     sms_permissions_action.delete,
+    sms_permissions_action.manage,
     sms_permissions_action.approve,
+    sms_permissions_action.reject,
     sms_permissions_action.export,
     sms_permissions_action.print,
   ];

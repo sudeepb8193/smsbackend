@@ -13,6 +13,7 @@ import { RolePermissionModule } from './modules/role-permission/role-permission.
 import { BranchModule } from './modules/branch/branch.module';
 import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { BookingChannelModule } from './modules/booking-channel/booking-channel.module';
+import { StaffModule } from './modules/staff/staff.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { BookingChannelModule } from './modules/booking-channel/booking-channel.
     UserModule,
     OrganisationModule,
     BranchModule,
+    StaffModule,
     RolePermissionModule,
     PlatformSettingsModule,
     BookingChannelModule,

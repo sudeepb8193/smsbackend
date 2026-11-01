@@ -103,6 +103,7 @@ enum sms_branches_status {
 enum sms_branchManagerAssignments_assignmentType {
   primary
   assistant
+  secondary
 }
 
 // ---- Module 03: Roles & Permissions ----
@@ -117,9 +118,11 @@ enum sms_roles_status {
 enum sms_permissions_action {
   create
   view
-  edit
+  update
   delete
+  manage
   approve
+  reject
   export
   print
 }
