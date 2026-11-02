@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   organizationId: string;
   status: string;
   roles?: string[];
+  assignedBranchIds?: string[];
 }
 
 export const CurrentUser = createParamDecorator(
