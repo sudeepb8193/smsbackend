@@ -53,6 +53,22 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff_branch.view',
       'staff_branch.assign',
       'staff.export',
+      // Module 06: Staff Designation & Service Assignment (Branch-Level Operations)
+      'staff_designation.view',
+      'staff_designation.create',
+      'staff_designation.update',
+      'staff_skill_rating.view',
+      'staff_skill_rating.create',
+      'staff_skill_rating.update',
+      'staff_skill_rating.approve',
+      'staff_skill_rating.reject',
+      'staff_service.view',
+      'staff_service.create',
+      'staff_service.update',
+      'staff_service_branch.view',
+      'staff_service_branch.create',
+      'staff_service_branch.update',
+      'staff_service_branch.delete',
       'appointments.view',
       'appointments.create',
       'appointments.edit',
@@ -97,6 +113,11 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       // Module 05: Basic staff directory and skills view
       'staff.view',
       'staff_qualification.view',
+      // Module 06: Service capability, verified skills & branch availability visibility for front desk booking
+      'staff_designation.view',
+      'staff_skill_rating.view',
+      'staff_service.view',
+      'staff_service_branch.view',
     ],
   },
   {
@@ -116,6 +137,13 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff_employment.view',
       'staff_qualification.view',
       'staff_document.view',
+      // Module 06: Self-service personal profile views & skill declaration
+      'staff_designation.view',
+      'staff_skill_rating.view',
+      'staff_skill_rating.create',
+      'staff_service.view',
+      'staff_service_branch.view',
+      'staff_commission.view',
     ],
   },
   {
@@ -147,6 +175,10 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       // Module 05: Basic staff directory and employment history view
       'staff.view',
       'staff_employment.view',
+      // Module 06: Commission configuration visibility & reports
+      'staff_commission.view',
+      'staff_commission.export',
+      'staff_commission.print',
       'billing.view',
       'billing.export',
       'billing.print',
@@ -167,6 +199,9 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'customers.edit',
       'customers.export',
       'services.view',
+      // Module 06: Staff specialty/designation and verified skills visibility for promotions
+      'staff_designation.view',
+      'staff_skill_rating.view',
       'reports.view',
       'reports.export',
     ],
@@ -270,6 +305,10 @@ export async function seedOrganizationSystemRoles(
  * Seeds roles across all existing organizations
  */
 export async function seedAllOrganizationsRoles(prisma: PrismaClient) {
+  // 1. Seed global system roles (where organizationId is null)
+  const globalRes = await seedOrganizationSystemRoles(prisma, null);
+  console.log(`Global system roles: created ${globalRes.rolesCreated} roles, assigned ${globalRes.permissionsAssigned} permissions.`);
+
   const orgs = await prisma.sms_organizations.findMany({
     where: { deletedAt: null },
     select: { id: true, name: true },

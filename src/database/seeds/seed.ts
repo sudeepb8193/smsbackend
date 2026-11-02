@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { seedPermissions } from './permissions.seed';
 import { seedAllOrganizationsRoles } from './roles.seed';
+import { seedDemoData } from './demo-data.seed';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('--- Starting SMS Module 03 Seed Execution ---');
+  console.log('--- Starting SMS Seed Execution ---');
 
   console.log('1. Seeding / Synchronizing Permission Catalog...');
   const permissionsCount = await seedPermissions(prisma);
@@ -14,7 +15,10 @@ async function main() {
   console.log('2. Initializing Predefined System Roles for Organizations...');
   await seedAllOrganizationsRoles(prisma);
 
-  console.log('--- SMS Module 03 Seed Execution Finished Successfully ---');
+  console.log('3. Seeding Module 06 & Application Demo Data...');
+  await seedDemoData(prisma);
+
+  console.log('--- SMS Seed Execution Finished Successfully ---');
 }
 
 main()
