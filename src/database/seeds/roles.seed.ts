@@ -69,6 +69,16 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff_service_branch.create',
       'staff_service_branch.update',
       'staff_service_branch.delete',
+      // Module 07: Staff Scheduling (Branch Manager)
+      'staff_schedule.view',
+      'staff_schedule.create',
+      'staff_schedule.update',
+      'staff_schedule.delete',
+      'staff_schedule.manage',
+      'staff_schedule.approve',
+      'staff_schedule.reject',
+      'staff_schedule.export',
+      'staff_schedule.print',
       'appointments.view',
       'appointments.create',
       'appointments.edit',
@@ -118,6 +128,9 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff_skill_rating.view',
       'staff_service.view',
       'staff_service_branch.view',
+      // Module 07: Staff Scheduling (Front Desk view)
+      'staff_schedule.view',
+      'staff_schedule.print',
     ],
   },
   {
@@ -144,6 +157,10 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff_service.view',
       'staff_service_branch.view',
       'staff_commission.view',
+      // Module 07: Staff Scheduling (Self-service schedule view, availability preferences, personal block request)
+      'staff_schedule.view',
+      'staff_schedule.create',
+      'staff_schedule.update',
     ],
   },
   {

@@ -15,6 +15,7 @@ import { PlatformSettingsModule } from './modules/platform-settings/platform-set
 import { BookingChannelModule } from './modules/booking-channel/booking-channel.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { StaffDesignationModule } from './modules/staff-designation/staff-designation.module';
+import { StaffSchedulingModule } from './modules/staff-scheduling/staff-scheduling.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { StaffDesignationModule } from './modules/staff-designation/staff-design
     BranchModule,
     StaffModule,
     StaffDesignationModule,
+    StaffSchedulingModule,
     RolePermissionModule,
     PlatformSettingsModule,
     BookingChannelModule,

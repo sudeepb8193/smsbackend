@@ -1127,6 +1127,82 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     label: 'Export Audit Logs',
     description: 'Export compliance reports and tamper-evident audit trails',
   },
+
+  // =========================================================================
+  // Module 07: Staff Scheduling
+  // =========================================================================
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.view,
+    permissionKey: 'staff_schedule.view',
+    label: 'View Staff Schedules',
+    description: 'View weekly rosters, shift templates, availability, overrides, and calendar blocks',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.create,
+    permissionKey: 'staff_schedule.create',
+    label: 'Create Schedules & Shifts',
+    description: 'Create shift templates, weekly schedules, preference entries, and blocked time',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.update,
+    permissionKey: 'staff_schedule.update',
+    label: 'Update Schedules & Shifts',
+    description: 'Update shift templates, weekly working hours, availability preferences, and overrides',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.delete,
+    permissionKey: 'staff_schedule.delete',
+    label: 'Delete / Retire Schedules',
+    description: 'Retire shift templates, remove schedule assignments, and cancel blocked time',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.manage,
+    permissionKey: 'staff_schedule.manage',
+    label: 'Manage Branch Scheduling',
+    description: 'Full scheduling management, shift swaps, and bulk roster assignment',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.approve,
+    permissionKey: 'staff_schedule.approve',
+    label: 'Approve Schedule Overrides',
+    description: 'Approve ad-hoc shift changes, extra shifts, and employee shift swaps',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.reject,
+    permissionKey: 'staff_schedule.reject',
+    label: 'Reject Schedule Overrides',
+    description: 'Reject ad-hoc shift changes, extra shifts, and employee shift swaps',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.export,
+    permissionKey: 'staff_schedule.export',
+    label: 'Export Schedules',
+    description: 'Export staff rosters, shift templates, and availability reports',
+  },
+  {
+    moduleCode: 'staff_schedule',
+    moduleLabel: 'Staff Scheduling',
+    action: sms_permissions_action.print,
+    permissionKey: 'staff_schedule.print',
+    label: 'Print Rosters & Shift Sheets',
+    description: 'Print weekly branch rosters and daily shift run sheets',
+  },
 ];
 
 /**
