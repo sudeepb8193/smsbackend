@@ -79,5 +79,8 @@ model sms_users {
 
   @@index([organizationId, email])
   @@index([organizationId, phoneNumber])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, displayName])
   @@map("sms_users")
 }

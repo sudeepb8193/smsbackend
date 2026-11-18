@@ -42,5 +42,8 @@ model sms_staff {
   customerPreferencesPreferred   sms_customerPreferences[]
 
   @@index([homeBranchId, employmentStatus])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, homeBranchId, employmentStatus])
+  @@index([organizationId, fullName])
   @@map("sms_staff")
 }

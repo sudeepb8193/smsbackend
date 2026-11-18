@@ -15,6 +15,7 @@ import type { AuthenticatedUser } from '../../../common/decorators/current-user.
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
+import { createPaginatedResponse } from '../../../common/utils/pagination.util';
 
 @Injectable()
 export class UserService {
@@ -67,7 +68,7 @@ export class UserService {
    */
   async findAll(organizationId: string, query: QueryUsersDto, actorOrId?: AuthenticatedUser | string) {
     const page = Math.max(1, Number(query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
 
     const where: Prisma.sms_usersWhereInput = {
@@ -81,24 +82,12 @@ export class UserService {
       const actorContext = await this.getActorRolesAndBranches(actorId);
       if (!actorContext.isSuperAdmin && !actorContext.isOwner && actorContext.isBranchManager) {
         if (actorContext.assignedBranchIds.length === 0) {
-          return {
-            data: [],
-            total: 0,
-            page,
-            limit,
-            totalPages: 1,
-          };
+          return createPaginatedResponse([], 0, page, limit);
         }
 
         if (query.branchId) {
           if (!actorContext.assignedBranchIds.includes(query.branchId)) {
-            return {
-              data: [],
-              total: 0,
-              page,
-              limit,
-              totalPages: 1,
-            };
+            return createPaginatedResponse([], 0, page, limit);
           }
         } else {
           where.userBranchAssignmentsForMe = {
@@ -239,13 +228,7 @@ export class UserService {
       };
     });
 
-    return {
-      data: formattedUsers,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit) || 1,
-    };
+    return createPaginatedResponse(formattedUsers, total, page, limit);
   }
 
   /**

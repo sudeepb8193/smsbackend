@@ -272,6 +272,8 @@ export class StaffDesignationController {
     @Param('id') staffId: string,
     @Query('search') search?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
     @Query('organizationId') queryOrgId?: string,
   ) {
     const orgId = this.resolveOrgId(user, queryOrgId);
@@ -281,6 +283,8 @@ export class StaffDesignationController {
       user,
       search,
       categoryId,
+      page,
+      limit,
     );
   }
 

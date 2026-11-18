@@ -25,5 +25,5 @@ export class QueryRolesDto {
 
   @Type(() => Number)
   @IsOptional()
-  limit?: number = 20;
+  limit?: number = 10;
 }

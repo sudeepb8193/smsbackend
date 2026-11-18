@@ -22,6 +22,7 @@ import {
 } from '../utils/time-range.util';
 import { SchedulingAccessHelper } from '../utils/scheduling-access.util';
 import { Prisma } from '@prisma/client';
+import { createPaginatedResponse } from '../../../common/utils/pagination.util';
 
 @Injectable()
 export class ShiftTemplateService {
@@ -171,22 +172,32 @@ export class ShiftTemplateService {
       where.name = { contains: query.search.trim(), mode: 'insensitive' };
     }
 
-    const templates = await this.prisma.sms_shiftTemplates.findMany({
-      where,
-      include: {
-        branch: {
-          select: { id: true, name: true, code: true },
-        },
-        _count: {
-          select: {
-            staffWeeklySchedules: true,
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const [total, templates] = await Promise.all([
+      this.prisma.sms_shiftTemplates.count({ where }),
+      this.prisma.sms_shiftTemplates.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          branch: {
+            select: { id: true, name: true, code: true },
+          },
+          _count: {
+            select: {
+              staffWeeklySchedules: true,
+            },
           },
         },
-      },
-      orderBy: [{ branchId: 'asc' }, { name: 'asc' }],
-    });
+        orderBy: [{ branchId: 'asc' }, { name: 'asc' }],
+      }),
+    ]);
 
-    return templates.map((t) => this.serializeTemplate(t));
+    const serialized = templates.map((t) => this.serializeTemplate(t));
+    return createPaginatedResponse(serialized, total, page, limit);
   }
 
   /**
