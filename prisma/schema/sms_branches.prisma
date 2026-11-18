@@ -47,5 +47,6 @@ model sms_branches {
 
   @@index([organizationId])
   @@index([status])
+  @@index([organizationId, status, createdAt])
   @@map("sms_branches")
 }

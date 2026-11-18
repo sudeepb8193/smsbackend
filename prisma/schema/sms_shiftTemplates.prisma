@@ -17,5 +17,7 @@ model sms_shiftTemplates {
 
   @@unique([organizationId, branchId, name])
   @@index([status])
+  @@index([organizationId, branchId, status])
+  @@index([organizationId, createdAt])
   @@map("sms_shiftTemplates")
 }

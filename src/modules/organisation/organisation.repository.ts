@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { createPaginatedResponse } from '../../common/utils/pagination.util';
 import { PrismaService } from '../../database/prisma.service';
 import { QueryOrganisationDto } from './dto/query-organisation.dto';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
@@ -114,8 +115,9 @@ export class OrganisationRepository {
       this.prisma.sms_organizations.count({ where: whereClause }),
     ]);
 
+        const paginated = createPaginatedResponse(items, total, page, limit);
     return {
-      data: items,
+      ...paginated,
       meta: {
         total,
         page,

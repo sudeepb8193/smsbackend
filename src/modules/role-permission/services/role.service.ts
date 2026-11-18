@@ -10,6 +10,7 @@ import { UpdateRoleDto } from '../dto/update-role.dto';
 import { QueryRolesDto } from '../dto/query-roles.dto';
 import { sms_roles_roleType, sms_roles_status } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { createPaginatedResponse } from '../../../common/utils/pagination.util';
 
 @Injectable()
 export class RoleService {
@@ -34,7 +35,7 @@ export class RoleService {
    */
   async findAll(organizationId: string | null, query: QueryRolesDto, isSuperAdmin: boolean = false) {
     const page = Math.max(1, Number(query.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+    const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -126,15 +127,7 @@ export class RoleService {
       };
     });
 
-    return {
-      items,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return createPaginatedResponse(items, total, page, limit);
   }
 
   /**

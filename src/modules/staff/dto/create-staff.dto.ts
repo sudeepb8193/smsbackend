@@ -5,8 +5,11 @@ import {
   IsUUID,
   IsEnum,
   IsDateString,
+  IsEmail,
+  Matches,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import {
   sms_staff_gender,
   sms_staff_employmentStatus,
@@ -77,11 +80,16 @@ export class CreateStaffDto {
   @IsString()
   @IsOptional()
   @MaxLength(20)
+  @Matches(/^\+?[0-9\s-]{7,20}$/, {
+    message: 'personalPhone must be a valid phone number (7-20 digits, spaces, hyphens, and optional leading +)',
+  })
+  @Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? undefined : value?.trim()))
   personalPhone?: string;
 
-  @IsString()
+  @IsEmail({}, { message: 'personalEmail must be a valid email address' })
   @IsOptional()
   @MaxLength(150)
+  @Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? undefined : value?.trim().toLowerCase()))
   personalEmail?: string;
 
   @IsString()

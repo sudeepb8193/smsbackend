@@ -126,5 +126,11 @@ export class QueryShiftTemplateDto {
 
   @IsOptional()
   organizationId?: string;
+
+  @IsOptional()
+  page?: number = 1;
+
+  @IsOptional()
+  limit?: number = 10;
 }
 

@@ -13,6 +13,7 @@ import { QueryBranchDto } from '../dto/query-branch.dto';
 import { CopyBranchSettingsDto } from '../dto/copy-branch-settings.dto';
 import { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 import { sms_branches_status, Prisma } from '@prisma/client';
+import { createPaginatedResponse } from '../../../common/utils/pagination.util';
 
 @Injectable()
 export class BranchService {
@@ -384,7 +385,7 @@ export class BranchService {
     if (permittedBranchIds !== null) {
       if (permittedBranchIds.length === 0) {
         return {
-          data: [],
+          ...createPaginatedResponse([], 0, query.page || 1, query.limit || 10),
           meta: {
             total: 0,
             page: query.page || 1,
@@ -453,16 +454,15 @@ export class BranchService {
       }),
     ]);
 
+    const paginated = createPaginatedResponse(branches, total, page, limit);
     return {
-      data: branches,
-      items: branches,
+      ...paginated,
       meta: {
         total,
         page,
         limit,
         totalPages: Math.ceil(total / limit),
       },
-      total,
     };
   }
 

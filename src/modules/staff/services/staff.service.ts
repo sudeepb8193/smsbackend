@@ -39,6 +39,7 @@ import {
   sms_branchManagerAssignments_assignmentType,
   Prisma,
 } from '@prisma/client';
+import { createPaginatedResponse } from '../../../common/utils/pagination.util';
 import type { AuthenticatedUser } from '../../../common/decorators/current-user.decorator';
 
 @Injectable()
@@ -134,14 +135,14 @@ export class StaffService {
       });
     }
 
-    if (branch.status === 'permanently_closed') {
+    if (branch.status !== 'active') {
       throw new BadRequestException({
-        code: 'BRANCH_CLOSED',
-        message: 'Cannot assign an employee to a permanently closed branch',
+        code: branch.status === 'permanently_closed' ? 'BRANCH_CLOSED' : 'BRANCH_NOT_ACTIVE',
+        message: `Cannot assign an employee to a ${branch.status.replace(/_/g, ' ')} branch`,
       });
     }
 
-    // 2. If userId provided, verify user belongs to org and is not already linked
+    // 2. If userId provided, verify user belongs to org, is active, and is not already linked
     if (dto.userId) {
       const user = await this.prisma.sms_users.findFirst({
         where: {
@@ -155,6 +156,13 @@ export class StaffService {
         throw new NotFoundException({
           code: 'USER_NOT_FOUND',
           message: 'The specified login user was not found in your organization',
+        });
+      }
+
+      if (user.status !== 'active') {
+        throw new BadRequestException({
+          code: 'USER_NOT_ACTIVE',
+          message: 'Cannot link an inactive user account',
         });
       }
 
@@ -186,82 +194,107 @@ export class StaffService {
       }
     }
 
-    // 4. Execute atomic transaction
-    const staff = await this.prisma.$transaction(async (tx) => {
-      // Create master staff record
-      const createdStaff = await tx.sms_staff.create({
-        data: {
-          organizationId,
-          employeeCode,
-          fullName: dto.fullName.trim(),
-          dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
-          gender: dto.gender || null,
-          profilePhotoUrl: dto.profilePhotoUrl || null,
-          homeBranchId: dto.homeBranchId,
-          employmentStatus: dto.employmentStatus || sms_staff_employmentStatus.active,
-          userId: dto.userId || null,
-          createdById: performedById || null,
-        },
-      });
+    // 4. Execute atomic transaction with concurrency-safe constraint violation handling
+    let staff: any;
+    try {
+      staff = await this.prisma.$transaction(async (tx) => {
+        // Create master staff record
+        const createdStaff = await tx.sms_staff.create({
+          data: {
+            organizationId,
+            employeeCode,
+            fullName: dto.fullName.trim(),
+            dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+            gender: dto.gender || null,
+            profilePhotoUrl: dto.profilePhotoUrl || null,
+            homeBranchId: dto.homeBranchId,
+            employmentStatus: dto.employmentStatus || sms_staff_employmentStatus.active,
+            userId: dto.userId || null,
+            createdById: performedById || null,
+          },
+        });
 
-      // Create initial Home Branch assignment
-      await tx.sms_staffBranchAssignments.create({
-        data: {
-          staffId: createdStaff.id,
-          branchId: dto.homeBranchId,
-          assignmentType: sms_staffBranchAssignments_assignmentType.home,
-          effectiveFrom: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
-          createdById: performedById || null,
-        },
-      });
-
-      // If initial employment details provided, record initial employment history
-      if (dto.designation || dto.department) {
-        await tx.sms_staffEmploymentHistory.create({
+        // Create initial Home Branch assignment
+        await tx.sms_staffBranchAssignments.create({
           data: {
             staffId: createdStaff.id,
-            designation: dto.designation || 'Staff',
-            department: dto.department || 'Operations',
-            employmentType: dto.employmentType || 'full_time',
-            joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
+            branchId: dto.homeBranchId,
+            assignmentType: sms_staffBranchAssignments_assignmentType.home,
             effectiveFrom: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
-            confirmationDate: dto.confirmationDate ? new Date(dto.confirmationDate) : null,
-            changeReason: 'initial_hire',
-            recordedById: performedById || null,
+            createdById: performedById || null,
           },
         });
-      }
 
-      // If initial contact details provided, create contact record
-      if (
-        dto.personalPhone ||
-        dto.personalEmail ||
-        dto.addressLine1 ||
-        dto.city ||
-        dto.nationalIdNumber
-      ) {
-        await tx.sms_staffContacts.create({
-          data: {
-            staffId: createdStaff.id,
-            personalPhone: dto.personalPhone || null,
-            personalEmail: dto.personalEmail || null,
-            addressLine1: dto.addressLine1 || null,
-            addressLine2: dto.addressLine2 || null,
-            city: dto.city || null,
-            state: dto.state || null,
-            postalCode: dto.postalCode || null,
-            countryCode: dto.countryCode || null,
-            bloodGroup: dto.bloodGroup || null,
-            maritalStatus: dto.maritalStatus || null,
-            nationalIdNumberEncrypted: dto.nationalIdNumber
-              ? encryptSensitiveData(dto.nationalIdNumber)
-              : null,
-          },
+        // If initial employment details provided, record initial employment history
+        if (dto.designation || dto.department) {
+          await tx.sms_staffEmploymentHistory.create({
+            data: {
+              staffId: createdStaff.id,
+              designation: dto.designation || 'Staff',
+              department: dto.department || 'Operations',
+              employmentType: dto.employmentType || 'full_time',
+              joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
+              effectiveFrom: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
+              confirmationDate: dto.confirmationDate ? new Date(dto.confirmationDate) : null,
+              changeReason: 'initial_hire',
+              recordedById: performedById || null,
+            },
+          });
+        }
+
+        // If initial contact details provided, create contact record
+        if (
+          dto.personalPhone ||
+          dto.personalEmail ||
+          dto.addressLine1 ||
+          dto.city ||
+          dto.nationalIdNumber
+        ) {
+          await tx.sms_staffContacts.create({
+            data: {
+              staffId: createdStaff.id,
+              personalPhone: dto.personalPhone || null,
+              personalEmail: dto.personalEmail || null,
+              addressLine1: dto.addressLine1 || null,
+              addressLine2: dto.addressLine2 || null,
+              city: dto.city || null,
+              state: dto.state || null,
+              postalCode: dto.postalCode || null,
+              countryCode: dto.countryCode || null,
+              bloodGroup: dto.bloodGroup || null,
+              maritalStatus: dto.maritalStatus || null,
+              nationalIdNumberEncrypted: dto.nationalIdNumber
+                ? encryptSensitiveData(dto.nationalIdNumber)
+                : null,
+            },
+          });
+        }
+
+        return createdStaff;
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        const target = err?.meta?.target;
+        const targetStr = Array.isArray(target) ? target.join(',') : String(target || '');
+        if (targetStr.includes('employeeCode')) {
+          throw new ConflictException({
+            code: 'DUPLICATE_EMPLOYEE_CODE',
+            message: `Employee code ${employeeCode} already exists`,
+          });
+        }
+        if (targetStr.includes('userId')) {
+          throw new ConflictException({
+            code: 'USER_ALREADY_LINKED',
+            message: 'This user account is already linked to another employee profile',
+          });
+        }
+        throw new ConflictException({
+          code: 'UNIQUE_CONSTRAINT_VIOLATION',
+          message: 'A unique constraint conflict occurred while creating employee',
         });
       }
-
-      return createdStaff;
-    });
+      throw err;
+    }
 
     await this.logAudit({
       organizationId,
@@ -468,13 +501,7 @@ export class StaffService {
       };
     });
 
-    return {
-      items: formatted,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return createPaginatedResponse(formatted, total, page, limit);
   }
 
   async findMyProfile(organizationId: string, currentUser: AuthenticatedUser) {

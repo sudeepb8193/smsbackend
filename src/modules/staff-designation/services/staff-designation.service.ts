@@ -38,6 +38,7 @@ import {
   sms_commission_type,
   Prisma,
 } from '@prisma/client';
+import { createPaginatedResponse } from '../../../common/utils/pagination.util';
 
 @Injectable()
 export class StaffDesignationService {
@@ -954,6 +955,8 @@ export class StaffDesignationService {
     currentUser?: AuthenticatedUser,
     search?: string,
     categoryId?: string,
+    page: number = 1,
+    limit: number = 10,
   ) {
     const staff = await this.validateStaff(staffId, organizationId);
     await this.validateAccess(staff, currentUser, 'staff_service.view');
@@ -992,24 +995,33 @@ export class StaffDesignationService {
         : {}),
     };
 
-    const services = await this.prisma.sms_services.findMany({
-      where: whereClause,
-      include: {
-        category: {
-          select: { id: true, name: true, slug: true, displayOrder: true },
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 10));
+    const skip = (safePage - 1) * safeLimit;
+
+    const [total, services] = await Promise.all([
+      this.prisma.sms_services.count({ where: whereClause }),
+      this.prisma.sms_services.findMany({
+        where: whereClause,
+        skip,
+        take: safeLimit,
+        include: {
+          category: {
+            select: { id: true, name: true, slug: true, displayOrder: true },
+          },
         },
-      },
-      orderBy: [
-        { category: { displayOrder: 'asc' } },
-        { name: 'asc' },
-      ],
-    });
+        orderBy: [
+          { category: { displayOrder: 'asc' } },
+          { name: 'asc' },
+        ],
+      }),
+    ]);
 
     // Helper: Determine if service matches designation or skill
     const designationTypes = designations.map((d) => d.designationType.toLowerCase());
     const verifiedSkillNames = verifiedSkills.map((s) => s.skillName.toLowerCase());
 
-    return services.map((s) => {
+    const formattedServices = services.map((s) => {
       const isAssigned = assignedServiceMap.has(s.id);
       const isCurrentlyActive = assignedServiceMap.get(s.id) === true;
       const sName = s.name.toLowerCase();
@@ -1073,6 +1085,8 @@ export class StaffDesignationService {
         suggestionReason,
       };
     });
+
+    return createPaginatedResponse(formattedServices, total, safePage, safeLimit);
   }
 
   async assignService(
