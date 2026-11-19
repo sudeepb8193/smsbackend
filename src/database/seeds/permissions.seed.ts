@@ -1203,6 +1203,82 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     label: 'Print Rosters & Shift Sheets',
     description: 'Print weekly branch rosters and daily shift run sheets',
   },
+
+  // =========================================================================
+  // Module 08: Staff Attendance
+  // =========================================================================
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.view,
+    permissionKey: 'staff_attendance.view',
+    label: 'View Staff Attendance',
+    description: 'View daily attendance rosters, personal punches, attendance summaries, and status logs',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.create,
+    permissionKey: 'staff_attendance.create',
+    label: 'Check In & Capture Attendance',
+    description: 'Perform employee check-in, check-out punches, kiosk mode authentication, and manual manager entry',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.update,
+    permissionKey: 'staff_attendance.update',
+    label: 'Update Attendance & Request Corrections',
+    description: 'Update attendance punches and submit employee punch correction requests',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.delete,
+    permissionKey: 'staff_attendance.delete',
+    label: 'Delete Attendance Record',
+    description: 'Remove invalid or duplicate unapproved attendance punch entries',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.manage,
+    permissionKey: 'staff_attendance.manage',
+    label: 'Manage Attendance Policies',
+    description: 'Configure organization grace periods, cutoff times, overtime rules, and branch policy overrides',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.approve,
+    permissionKey: 'staff_attendance.approve',
+    label: 'Approve Attendance & Period Sign-Off',
+    description: 'Approve employee correction requests and sign off pay-period attendance with payroll locks',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.reject,
+    permissionKey: 'staff_attendance.reject',
+    label: 'Reject Corrections & Reopen Periods',
+    description: 'Reject pending attendance corrections and reopen previously locked attendance periods with audit justification',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.export,
+    permissionKey: 'staff_attendance.export',
+    label: 'Export Attendance Reports',
+    description: 'Export monthly attendance rollups, overtime rosters, and punctuality reports to CSV/PDF',
+  },
+  {
+    moduleCode: 'staff_attendance',
+    moduleLabel: 'Staff Attendance',
+    action: sms_permissions_action.print,
+    permissionKey: 'staff_attendance.print',
+    label: 'Print Attendance Run Sheets',
+    description: 'Print daily attendance run sheets, kiosk summaries, and period payroll sign-off documentation',
+  },
 ];
 
 /**
