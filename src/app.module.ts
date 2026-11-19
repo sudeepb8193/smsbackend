@@ -16,6 +16,7 @@ import { BookingChannelModule } from './modules/booking-channel/booking-channel.
 import { StaffModule } from './modules/staff/staff.module';
 import { StaffDesignationModule } from './modules/staff-designation/staff-designation.module';
 import { StaffSchedulingModule } from './modules/staff-scheduling/staff-scheduling.module';
+import { StaffAttendanceModule } from './modules/staff-attendance/staff-attendance.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { StaffSchedulingModule } from './modules/staff-scheduling/staff-scheduli
     StaffModule,
     StaffDesignationModule,
     StaffSchedulingModule,
+    StaffAttendanceModule,
     RolePermissionModule,
     PlatformSettingsModule,
     BookingChannelModule,
