@@ -7,6 +7,10 @@ import {
 } from 'class-validator';
 
 export class ApproveAttendancePeriodDto {
+  @IsOptional()
+  @IsUUID()
+  organizationId?: string;
+
   @IsUUID()
   @IsNotEmpty()
   branchId: string;

@@ -60,9 +60,9 @@ export class BranchController {
   /**
    * 2. List Branches (Searchable, filterable, paginated)
    * GET /branches or GET /organizations/:orgId/branches
+   * Scoped to user's permitted branches (or all org branches for Owner/SuperAdmin)
    */
   @Get()
-  @RequirePermissions('branches.view')
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryBranchDto,

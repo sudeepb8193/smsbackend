@@ -10,6 +10,10 @@ import {
 export class SubmitAttendanceCorrectionDto {
   @IsOptional()
   @IsUUID()
+  organizationId?: string;
+
+  @IsOptional()
+  @IsUUID()
   attendanceId?: string;
 
   @IsOptional()

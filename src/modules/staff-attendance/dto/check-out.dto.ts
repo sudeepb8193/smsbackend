@@ -5,9 +5,14 @@ import {
   IsNumber,
   IsString,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { sms_checkinMethod } from '@prisma/client';
 
 export class CheckOutDto {
+  @IsOptional()
+  @IsUUID()
+  organizationId?: string;
+
   @IsOptional()
   @IsUUID()
   staffId?: string;
@@ -15,6 +20,7 @@ export class CheckOutDto {
   @IsUUID()
   branchId: string;
 
+  @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() : value))
   @IsEnum(sms_checkinMethod)
   method: sms_checkinMethod;
 

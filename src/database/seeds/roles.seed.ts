@@ -190,6 +190,9 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff-attendance.view',
       'staff-attendance.create',
       'staff-attendance.edit',
+      // Branch context (view own assigned branch)
+      'branch.view',
+      'branches.view',
     ],
   },
   {

@@ -135,7 +135,7 @@ export const GLOBAL_MATRIX_MODULES: ModuleMatrixDefinition[] = [
     moduleCode: 'branch',
     moduleLabel: 'Branch Management',
     description: 'Branch locations, facilities, working hours, and branch profiles',
-    accessMatrix: { SA: 'F', BM: 'E', FD: 'V', ST: null, IM: null, AC: 'V', MK: null, CU: null },
+    accessMatrix: { SA: 'F', BM: 'E', FD: 'V', ST: 'O', IM: null, AC: 'V', MK: null, CU: null },
   },
   {
     number: 3,
