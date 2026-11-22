@@ -10,6 +10,10 @@ import { Type } from 'class-transformer';
 export class QueryAttendanceSummaryDto {
   @IsOptional()
   @IsUUID()
+  organizationId?: string;
+
+  @IsOptional()
+  @IsUUID()
   branchId?: string;
 
   @IsOptional()

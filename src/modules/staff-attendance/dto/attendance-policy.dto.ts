@@ -11,6 +11,10 @@ import {
 export class SaveAttendancePolicyDto {
   @IsOptional()
   @IsUUID()
+  organizationId?: string;
+
+  @IsOptional()
+  @IsUUID()
   branchId?: string;
 
   @IsInt()

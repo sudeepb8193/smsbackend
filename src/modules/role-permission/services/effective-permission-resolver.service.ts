@@ -310,6 +310,14 @@ export class EffectivePermissionResolverService {
       spellingVariants.push(module.replace(/organization/g, 'organisation'));
     }
 
+    // Support separator variants: hyphen <-> underscore (e.g. staff_attendance <-> staff-attendance)
+    if (module.includes('_')) {
+      spellingVariants.push(module.replace(/_/g, '-'));
+    }
+    if (module.includes('-')) {
+      spellingVariants.push(module.replace(/-/g, '_'));
+    }
+
     // Action aliases (e.g. update <-> edit)
     const actionVariants = [action];
     if (action === 'update') actionVariants.push('edit');

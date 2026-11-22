@@ -7,10 +7,14 @@ import {
   IsInt,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { sms_staffAttendance_status } from '@prisma/client';
 
 export class QueryAttendanceDto {
+  @IsOptional()
+  @IsUUID()
+  organizationId?: string;
+
   @IsOptional()
   @IsUUID()
   branchId?: string;
@@ -32,6 +36,7 @@ export class QueryAttendanceDto {
   endDate?: string;
 
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() : value))
   @IsEnum(sms_staffAttendance_status)
   status?: sms_staffAttendance_status;
 
