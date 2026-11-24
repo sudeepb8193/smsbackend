@@ -1279,6 +1279,82 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     label: 'Print Attendance Run Sheets',
     description: 'Print daily attendance run sheets, kiosk summaries, and period payroll sign-off documentation',
   },
+
+  // =========================================================================
+  // Module 09: Staff Leave Management
+  // =========================================================================
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.view,
+    permissionKey: 'staff_leave.view',
+    label: 'View Staff Leave & Balances',
+    description: 'View leave requests, balance ledgers, policy types, and team leave calendar',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.create,
+    permissionKey: 'staff_leave.create',
+    label: 'Apply for Leave',
+    description: 'Submit leave applications, select date ranges/half-days, and upload supporting documents',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.update,
+    permissionKey: 'staff_leave.update',
+    label: 'Update / Cancel Leave Request',
+    description: 'Update pending leave applications and cancel eligible leave requests',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.delete,
+    permissionKey: 'staff_leave.delete',
+    label: 'Delete Leave Record',
+    description: 'Remove invalid or draft leave submissions and unapproved records',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.manage,
+    permissionKey: 'staff_leave.manage',
+    label: 'Manage Leave Policies & Balances',
+    description: 'Configure leave types, accrual rules, manual balance adjustments, and blackout periods',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.approve,
+    permissionKey: 'staff_leave.approve',
+    label: 'Approve Staff Leave Requests',
+    description: 'Review and approve pending staff leave requests with balance deduction',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.reject,
+    permissionKey: 'staff_leave.reject',
+    label: 'Reject Staff Leave Requests',
+    description: 'Reject pending staff leave requests with auditable notes',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.export,
+    permissionKey: 'staff_leave.export',
+    label: 'Export Leave Reports',
+    description: 'Export leave balances, usage rollups, and audit logs to CSV',
+  },
+  {
+    moduleCode: 'staff_leave',
+    moduleLabel: 'Staff Leave',
+    action: sms_permissions_action.print,
+    permissionKey: 'staff_leave.print',
+    label: 'Print Leave Run Sheets',
+    description: 'Print staff absence rosters, approved leave summaries, and calendar run sheets',
+  },
 ];
 
 /**
