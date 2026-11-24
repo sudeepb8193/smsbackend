@@ -15,6 +15,12 @@ export interface PaginatedResult<T> {
   limit: number;
   totalPages: number;
   pagination: PaginationMeta;
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 /**
@@ -48,6 +54,12 @@ export function createPaginatedResponse<T>(
     limit: safeLimit, // Backwards-compatible alias
     totalPages, // Backwards-compatible alias
     pagination: paginationMeta, // Official Phase 3 Standardized Pagination Contract
+    meta: {
+      page: safePage,
+      limit: safeLimit,
+      total: totalRecords,
+      totalPages,
+    },
   };
 }
 

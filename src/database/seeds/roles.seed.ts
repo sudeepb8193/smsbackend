@@ -94,6 +94,15 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff-attendance.approve',
       'staff-attendance.export',
       'staff-attendance.print',
+      // Module 09: Staff Leave Management (Branch Manager)
+      'staff_leave.view',
+      'staff_leave.create',
+      'staff_leave.update',
+      'staff_leave.manage',
+      'staff_leave.approve',
+      'staff_leave.reject',
+      'staff_leave.export',
+      'staff_leave.print',
       'appointments.view',
       'appointments.create',
       'appointments.edit',
@@ -153,6 +162,9 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff-attendance.view',
       'staff-attendance.create',
       'staff-attendance.print',
+      // Module 09: Staff Leave Management (Front Desk view)
+      'staff_leave.view',
+      'staff_leave.print',
     ],
   },
   {
@@ -190,6 +202,10 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff-attendance.view',
       'staff-attendance.create',
       'staff-attendance.edit',
+      // Module 09: Staff Leave Management (Service Staff self-service)
+      'staff_leave.view',
+      'staff_leave.create',
+      'staff_leave.update',
       // Branch context (view own assigned branch)
       'branch.view',
       'branches.view',
@@ -235,6 +251,10 @@ export const PREDEFINED_SYSTEM_ROLES: PredefinedRoleConfig[] = [
       'staff-attendance.view',
       'staff-attendance.export',
       'staff-attendance.print',
+      // Module 09: Staff Leave Management (Accountant payroll-ready view)
+      'staff_leave.view',
+      'staff_leave.export',
+      'staff_leave.print',
       'billing.view',
       'billing.export',
       'billing.print',
